@@ -49,10 +49,13 @@ export class IgClient {
         const left = Math.floor((screenWidth - width) / 2);
         const top = Math.floor((screenHeight - height) / 2);
         this.browser = await puppeteerExtra.launch({
-            headless: false,
+            headless: process.env.NODE_ENV === 'production',
             args: [
                 `--window-size=${width},${height}`,
-                `--window-position=${left},${top}`
+                ...(process.env.NODE_ENV === 'production' 
+                    ? ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+                    : [`--window-position=${left},${top}`]
+                )
             ],
         });
         this.page = await this.browser.newPage();
