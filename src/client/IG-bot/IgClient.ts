@@ -122,17 +122,15 @@ export class IgClient {
             const screenshotPath = `/tmp/${name}.png`;
             await this.page!.screenshot({ path: screenshotPath });
             
-            // Read screenshot file
             const imageBuffer = await fsAsync.readFile(screenshotPath);
             const base64 = imageBuffer.toString('base64');
             
             logger.info(`=== SCREENSHOT: ${name} ===`);
             logger.info(`Size: ${imageBuffer.length} bytes`);
-            logger.info(`First 200 chars of base64: ${base64.substring(0, 200)}`);
             
-            // Log full base64 so you can view it
-            console.log(`\n\nSCREENSHOT ${name} (copy this to browser):`);
-            console.log(`data:image/png;base64,${base64}\n\n`);
+            console.log(`\n\n📸 SCREENSHOT ${name.toUpperCase()} (copy to browser to view):`);
+            console.log(`data:image/png;base64,${base64}`);
+            console.log(`\n`);
             
         } catch (e) {
             logger.warn(`Could not save screenshot: ${name}`, e);
