@@ -118,13 +118,13 @@ export class IgClient {
 
 
     /* Debug Screenshot for Testing */
-        private async debugScreenshot(name: string): Promise<void> {
+    private async debugScreenshot(name: string): Promise<void> {
         try {
             const screenshotPath = `/tmp/${name}.png`;
             await this.page!.screenshot({ path: screenshotPath });
             
             // Read and log as base64 for remote debugging
-            const imageBuffer = await fs.readFile(screenshotPath);
+            const imageBuffer = await fs.readFile(screenshotPath); // fs ist schon importiert
             const base64 = imageBuffer.toString('base64');
             
             logger.info(`=== SCREENSHOT: ${name} ===`);
