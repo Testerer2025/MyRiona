@@ -9,7 +9,8 @@ import { Instagram_cookiesExist, loadCookies, saveCookies } from "../../utils";
 import { runAgent } from "../../Agent";
 import { getInstagramCommentSchema } from "../../Agent/schema";
 import { getShouldExitInteractions } from '../../api/agent';
-import fs from "fs";
+import * as fsSync from "fs";
+import * as fsAsync from "fs/promises";
 import path from "path";
 
 // Add stealth plugin to puppeteer
@@ -37,12 +38,10 @@ export class IgClient {
      * Find Chrome executable path automatically
      */
     private findChromePath(): string | undefined {
-        // 1. Check environment variable
         if (process.env.PUPPETEER_EXECUTABLE_PATH) {
             const envPath = process.env.PUPPETEER_EXECUTABLE_PATH;
             
-            // Check if path exists
-            if (fs.existsSync(envPath)) {
+            if (fsSync.existsSync(envPath)) {  // ← fsSync
                 logger.info(`Using Chrome from env var: ${envPath}`);
                 return envPath;
             }
@@ -123,16 +122,20 @@ export class IgClient {
             const screenshotPath = `/tmp/${name}.png`;
             await this.page!.screenshot({ path: screenshotPath });
             
-            // Read and log as base64 for remote debugging
-            const imageBuffer = await fs.readFile(screenshotPath); // fs ist schon importiert
+            // Read screenshot file
+            const imageBuffer = await fsAsync.readFile(screenshotPath);
             const base64 = imageBuffer.toString('base64');
             
             logger.info(`=== SCREENSHOT: ${name} ===`);
-            logger.info(`data:image/png;base64,${base64.substring(0, 100)}...`);
-            logger.info(`Full screenshot saved to: ${screenshotPath}`);
-            logger.info(`Image size: ${imageBuffer.length} bytes`);
+            logger.info(`Size: ${imageBuffer.length} bytes`);
+            logger.info(`First 200 chars of base64: ${base64.substring(0, 200)}`);
+            
+            // Log full base64 so you can view it
+            console.log(`\n\nSCREENSHOT ${name} (copy this to browser):`);
+            console.log(`data:image/png;base64,${base64}\n\n`);
+            
         } catch (e) {
-            logger.warn(`Could not save screenshot: ${name}`);
+            logger.warn(`Could not save screenshot: ${name}`, e);
         }
     }
     
