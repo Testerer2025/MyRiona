@@ -3,7 +3,6 @@ import puppeteerExtra from "puppeteer-extra";
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import AdblockerPlugin from "puppeteer-extra-plugin-adblocker";
 import { Server } from "proxy-chain";
-import { IGpassword, IGusername } from "../../secret";
 import logger from "../../config/logger";
 import { Instagram_cookiesExist, loadCookies, saveCookies } from "../../utils";
 import { runAgent } from "../../Agent";
@@ -29,8 +28,17 @@ export class IgClient {
     private password: string;
 
     constructor(username?: string, password?: string) {
-        this.username = username || '';
-        this.password = password || '';
+        // Direkt aus process.env lesen - verwende die exakten Namen von Render.com
+        this.username = username || process.env.IGusername || '';
+        this.password = password || process.env.IGpassword || '';
+        
+        logger.info(`IgClient Constructor - Username: "${this.username.substring(0, 3)}***" (length: ${this.username.length})`);
+        logger.info(`IgClient Constructor - Password length: ${this.password.length}`);
+        
+        if (!this.username || !this.password) {
+            logger.error('❌ Credentials missing! Available env vars:', Object.keys(process.env).filter(k => k.includes('IG')));
+            throw new Error('Instagram credentials not found in environment variables');
+        }
     }
 
     private findChromePath(): string | undefined {
