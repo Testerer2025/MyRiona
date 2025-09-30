@@ -5,7 +5,10 @@ import logger from "../config/logger";
 
 export async function Instagram_cookiesExist(): Promise<boolean> {
   try {
-    const cookiesPath = "./cookies/Instagramcookies.json";
+    const cookiesPath = process.env.NODE_ENV === 'production' 
+      ? "/persistent/Instagramcookies.json" 
+      : "./cookies/Instagramcookies.json";
+    
     await fs.access(cookiesPath);
 
     const cookiesData = await fs.readFile(cookiesPath, "utf-8");
