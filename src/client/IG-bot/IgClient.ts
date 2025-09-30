@@ -109,6 +109,16 @@ export class IgClient {
     }
 
     async init() {
+        // Wenn Browser schon läuft, nicht nochmal starten
+        if (this.browser && this.page) {
+            logger.info('Browser already running, checking session...');
+            const isValid = await this.verifySession();
+            if (isValid) {
+                logger.info('Session still valid');
+                return;
+            }
+            logger.warn('Session invalid, need to re-login');
+        }
         const execPath = this.findChromePath();
 
         const proxyServer = new Server({ port: 8000 });
@@ -141,31 +151,43 @@ export class IgClient {
         await this.authenticateUser();
     }
 
+    async verifySession(): Promise<boolean> {
+        try {
+            if (!this.page) return false;
+            
+            await this.page.goto('https://www.instagram.com/', { 
+                waitUntil: 'networkidle2',
+                timeout: 10000 
+            });
+            
+            const isLoggedIn = await this.page.$("a[href='/direct/inbox/']");
+            return !!isLoggedIn;
+        } catch (error) {
+            logger.error('Session check failed:', error);
+            return false;
+        }
+    }
+
     private async authenticateUser(): Promise<void> {
-        logger.info("Authenticating user...");
-        
+        // Erst Cookies probieren
         const cookiesExist = await Instagram_cookiesExist();
         
         if (cookiesExist) {
-            logger.info("Loading existing cookies.");
-            const cookies = await loadCookies("/persistent/Instagramcookies.json");
-            if (cookies && cookies.length > 0) {
-                await this.page!.setCookie(...cookies);
-            }
+            const cookies = await loadCookies(this.cookiesPath);
+            await this.page!.setCookie(...cookies);
             await this.page!.goto("https://www.instagram.com/", { waitUntil: 'networkidle2' });
-
+            
             const isLoggedIn = await this.page!.$("a[href='/direct/inbox/']");
             if (isLoggedIn) {
-                logger.info("Authentication successful with cookies");
-                return;
+                logger.info("✅ Authenticated with cookies");
+                return;  // FERTIG - kein Login nötig
             }
-            logger.warn("Cookies invalid, logging in with credentials.");
         }
-
+        
+        // Nur wenn Cookies ungültig: Login
         await this.loginWithCredentials();
-        logger.info("Authentication successful");
     }
-
+    
     private async loginWithCredentials(): Promise<void> {
         try {
             logger.info(`Attempting login for user: ${this.username.substring(0, 3)}***`);
