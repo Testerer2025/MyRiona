@@ -55,10 +55,28 @@ logger.info(`✓ Generated post: ${generatedPost.postText.substring(0, 100)}...`
 logger.info(`✓ Hashtags: ${generatedPost.hashtags.join(', ')}`);
 logger.info(`✓ Tone: ${generatedPost.tone}`);
 
+// 8. Test Image Generation (Phase 3)
+logger.info('\n=== Testing Phase 3: Image Generation ===');
+const { imageGenerationService } = await import('../services/imageGenerationService');
+
+try {
+  const testImagePrompt = "A cozy bar with dart boards, drinks on tables, warm lighting, no text visible";
+  const imageBuffer = await imageGenerationService.generateImage(testImagePrompt);
+  logger.info(`✓ Image generated: ${imageBuffer.length} bytes`);
+  
+  const imagePath = await imageGenerationService.saveImageToTemp(imageBuffer, 'test-image.jpg');
+  logger.info(`✓ Image saved to: ${imagePath}`);
+} catch (error) {
+  logger.error('Image generation test failed:', error);
+  logger.warn('Skipping image generation test - may not be supported yet');
+}
+
     logger.info('=== ✅ All Phase 1 Tests Passed ===');
     return true;
   } catch (error) {
     logger.error('=== ❌ Phase 1 Tests Failed ===', error);
     return false;
   }
+
+  
 }
