@@ -5,6 +5,8 @@ import mongoose from 'mongoose';
 import { signToken, verifyToken, getTokenFromRequest } from '../secret';
 import fs from 'fs/promises';
 import path from 'path';
+import { themeService } from '../services/themeService';
+import Post from '../models/Post';
 
 const router = express.Router();
 
@@ -186,6 +188,51 @@ router.post('/logout', (req: Request, res: Response) => {
     secure: process.env.NODE_ENV === 'production',
   });
   return res.json({ message: 'Logged out successfully' });
+});
+
+// Test Route
+
+router.get('/test/phase1', async (req, res) => {
+  try {
+    const results: any = {};
+
+    // Test Theme Configuration
+    results.configValid = await themeService.validateConfiguration();
+    results.stats = await themeService.getThemeStats();
+
+    // Test Theme Selection
+    const theme = await themeService.selectRandomTheme();
+    results.selectedTheme = {
+      id: theme.id,
+      name: theme.name,
+      weight: theme.weight
+    };
+
+    // Test Prompt Loading
+    const { promptText } = await themeService.getThemeWithPrompt(theme.id);
+    results.promptPreview = promptText.substring(0, 100);
+
+    // Test Backup Post
+    const backupPost = await themeService.getRandomBackupPost();
+    results.backupPostPreview = backupPost.substring(0, 50);
+
+    // Test DB Write/Read
+    const testPost = new Post({
+      theme: theme.name,
+      themeId: theme.id,
+      postText: 'Test post',
+      imagePrompt: theme.image.prompt,
+      status: 'success'
+    });
+    await testPost.save();
+    const savedPost = await Post.findById(testPost._id);
+    await Post.findByIdAndDelete(testPost._id);
+    results.dbTest = savedPost ? 'success' : 'failed';
+
+    res.json({ success: true, results });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 export default router; 

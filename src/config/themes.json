@@ -1,0 +1,74 @@
+{
+  "themes": [
+    {
+      "id": "bar_showcase",
+      "name": "Bar Showcase",
+      "enabled": true,
+      "weight": 1,
+      "promptFile": "bar_showcase.txt",
+      "image": {
+        "prompt": "Stillleben von Objekten in einer Bar, keine Personen oder Schriften",
+        "apiStyle": "natural",
+        "details": "Gläser, Dartscheiben, Cocktails, warme Beleuchtung",
+        "size": "1024x1024",
+        "quality": "standard",
+        "usePostingText": false 
+      }
+    },
+    {
+      "id": "bar_showcase_people",
+      "name": "Bar Showcase mit Personen",
+      "enabled": true,
+      "weight": 1,
+      "promptFile": "bar_showcase_people.txt",
+      "image": {
+        "prompt": "Eine Bar mit Personen am Dartspielen. Eine typische Bar-Atmosphäre. Auf dem von dir generierten Bild dürfen auf gar keinen Fall dürfen Schriften oder Text in irgendeiner Form sichtbar sein.",
+        "apiStyle": "natural",
+        "details": "Gläser, Dartscheiben, Cocktails, warme Beleuchtung",
+        "size": "1024x1024",
+        "quality": "standard",
+        "usePostingText": false 
+      }
+    },
+    {
+      "id": "terrace_post",
+      "name": "Terrassen Post",
+      "enabled": true,
+      "weight": 1,
+      "promptFile": "terrace_post.txt",
+      "image": {
+        "prompt": "Personen entspannen auf einer schönen, sonnigen Bar-Terrasse mit Drinks. Auf dem von dir generierten Bild dürfen auf gar keinen Fall dürfen Schriften oder Text in irgendeiner Form sichtbar sein.",
+        "apiStyle": "natural",
+        "details": "Sonnenschein, Pflanzen, entspannte Atmosphäre, Drinks auf Tischen, lächelnde Menschen.",
+        "size": "1024x1024",
+        "quality": "standard",
+        "usePostingText": false 
+      }
+    },
+    {
+      "id": "weather_post",
+      "name": "Wetter Post",
+      "enabled": true,
+      "weight": 0,
+      "promptFile": "weather_post.txt",
+      "image": {
+        "prompt": "Ein Bild dass eine Bar beim aktuellen Wetter in Dübendorf abbildet.",
+        "apiStyle": "natural",
+        "details": "Drinks, Bier, Cocktails, Bar-Atmosphäre, keine Schriften sichtbar.",
+        "size": "1024x1024",
+        "quality": "standard"
+      }
+    }
+  ],
+  "defaults": {
+    "maxLength": 450,
+    "includeHashtags": true,
+    "hashtagCount": 3,
+    "language": "de"
+  },
+  "backupPosts": [
+    "🎯 Nichts geht über eine spannende Partie Darts!\n\nWer ist dein liebster Dart-Partner?\n\n#darts #dübi #barpapa",
+    "☀️ Unsere Terrasse ist offiziell eröffnet! Schnapp dir deinen Lieblingsdrink und geniess die Sonne.\n\nWer kommt heute Abend vorbei?\n\n#terrasse #dübi #sommerabend",
+    "🍻 Feierabend im PAPA: Komm vorbei und lass den Tag ausklingen. Die Drinks sind kalt und die Stimmung ist super.\n\n#feierabend #barleben #dübi"
+  ]
+}

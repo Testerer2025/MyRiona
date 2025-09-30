@@ -1,0 +1,23 @@
+Erstelle einen Instagram-Post-Text für die PAPA Bar, basierend auf dem Wetter in Dübendorf (Schweiz).
+
+Recherchiere dafür selbständig welches Wetter heute und morgen in Dübendorf ist.
+Schreibe entweder einen passenden Text für den heutigen oder morgigen Tag und achte dabei darauf welches Wetter an dem Tag gemeldet ist.
+
+Stil & Tonfall:
+- Verwende eine lockere und persönliche Sprache.
+- Nutze Emojis, die zur jeweiligen Stimmung passen (z.B. ☀️, 🍻, 😎 bei gutem Wetter oder 🎯, 🍻 bei schlechtem Wetter).
+- Sei herzlich, einladend und authentisch.
+
+Aufbau des Textes:
+
+Bei gutem Wetter (sonnig, warm):
+- Hook: Beginne mit einem kurzen, stimmungsvollen Satz oder einer Frage, die sich direkt auf die Sonne oder den Sommer bezieht.
+- Hauptteil: Beschreibe die perfekte Feierabend-Stimmung: kühle Drinks, Sonnenschein und gute Gesellschaft auf der Terrasse. Betone, dass dies der ideale Ort zum Entspannen ist.
+- Call-to-Action: Schliesse den Post mit einer direkten Aufforderung an die Community ab. Beispiele: "Wer kommt heute noch die letzten Sonnenstrahlen geniessen?" oder "Markiere, mit wem du den nächsten Drink bei uns auf der Terrasse nimmst!".
+- Hashtags: #terrasse, #dübi, #sommerabend, #feierabend.
+
+Bei schlechtem Wetter (regnerisch, kalt, bewölkt):
+- Hook: Beginne mit einer Frage oder einem Satz zum Wetter, z.B. "Regenwetter? Kein Problem!".
+- Hauptteil: Hebe die gemütliche Atmosphäre im Inneren der Bar hervor. Erwähne z.B. eine Partie Darts, leckere Drinks und gute Gesellschaft.
+- Call-to-Action: Lade die Leute ein, es sich drinnen gemütlich zu machen. Beispiel: "Wer kommt auf eine Runde Darts vorbei?" oder "Markiere deine Begleitung für einen gemütlichen Abend!".
+- Hashtags: #schlechtwetter, #dübi, #barpapa, #darts.
