@@ -91,12 +91,11 @@ export class IgClient {
     private async authenticateUser(): Promise<void> {
         logger.info("Authenticating user...");
         
-        const cookiesPath = "/persistent/Instagramcookies.json";
-        const cookiesExist = await Instagram_cookiesExist(cookiesPath);
+        const cookiesExist = await Instagram_cookiesExist(); // Ohne Parameter
         
         if (cookiesExist) {
             logger.info("Loading existing cookies.");
-            const cookies = await loadCookies(cookiesPath);
+            const cookies = await loadCookies("/persistent/Instagramcookies.json");
             if (cookies && cookies.length > 0) {
                 await this.page!.setCookie(...cookies);
             }
