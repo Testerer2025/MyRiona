@@ -18,6 +18,12 @@ export const getIgClient = async (username?: string, password?: string): Promise
     return igClient;
 };
 
+// Füge hinzu - exportiere die page für direkten Zugriff:
+export const getIgPage = async () => {
+    const client = await getIgClient();
+    return (client as any).page;
+};
+
 export const closeIgClient = async () => {
     if (igClient) {
         await igClient.close();

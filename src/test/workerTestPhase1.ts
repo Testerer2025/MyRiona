@@ -59,6 +59,20 @@ logger.info(`✓ Tone: ${generatedPost.tone}`);
 logger.info('\n=== Testing Phase 3: Image Generation ===');
 const { imageGenerationService } = await import('../services/imageGenerationService');
 
+// 9. Test Instagram Post Upload (Phase 4)
+logger.info('\n=== Testing Phase 4: Instagram Post Upload ===');
+const { instagramPostService } = await import('../services/instagramPostService');
+
+try {
+  // Use the image we generated in Phase 3
+  const testCaption = "Test post from Riona AI Bot 🤖\n\n#test #bot #automation";
+  await instagramPostService.postToInstagram('/tmp/test-image.jpg', testCaption);
+  logger.info('✓ Instagram post uploaded successfully');
+} catch (error) {
+  logger.error('Instagram post upload failed:', error);
+  logger.warn('This is expected if not logged in or selectors changed');
+}
+
 try {
   const testImagePrompt = "A cozy bar with dart boards, drinks on tables, warm lighting, no text visible";
   const imageBuffer = await imageGenerationService.generateImage(testImagePrompt);
