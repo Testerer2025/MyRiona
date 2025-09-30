@@ -26,9 +26,9 @@ export class IgClient {
     private page: puppeteer.Page | null = null;
     private username: string;
     private password: string;
+    private cookiesPath: string = "/persistent/Instagramcookies.json";  // ← HINZUFÜGEN
 
     constructor(username?: string, password?: string) {
-        // Direkt aus process.env lesen - verwende die exakten Namen von Render.com
         this.username = username || process.env.IGusername || '';
         this.password = password || process.env.IGpassword || '';
         
@@ -187,7 +187,7 @@ export class IgClient {
         // Nur wenn Cookies ungültig: Login
         await this.loginWithCredentials();
     }
-    
+
     private async loginWithCredentials(): Promise<void> {
         try {
             logger.info(`Attempting login for user: ${this.username.substring(0, 3)}***`);
