@@ -36,7 +36,7 @@ export class IgClient {
     }
 
     async init() {
-        // Chrome Installation bleibt
+        // Chrome Installation
         const execPath = process.env.PUPPETEER_EXECUTABLE_PATH;
         if (execPath) {
             const fs = require('fs');
@@ -52,11 +52,12 @@ export class IgClient {
             }
         }
 
-        // Proxy Setup (wie im alten Code)
+        // Proxy Setup wie im alten Code
         const { Server } = require('proxy-chain');
         const proxyServer = new Server({ port: 8000 });
         await proxyServer.listen();
         const proxyUrl = `http://localhost:8000`;
+        logger.info(`Proxy running on ${proxyUrl}`);
         
         this.browser = await puppeteerExtra.launch({
             executablePath: execPath || undefined,
@@ -75,7 +76,7 @@ export class IgClient {
         
         this.page = await this.browser.newPage();
         
-        // Fester User-Agent wie im alten Code
+        // Fester User-Agent (genau wie im alten Code)
         await this.page.setViewport({ width: 1366, height: 768 });
         await this.page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
 
