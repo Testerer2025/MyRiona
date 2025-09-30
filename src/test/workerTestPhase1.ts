@@ -43,6 +43,18 @@ export async function testPhase1() {
     await Post.findByIdAndDelete(testPost._id);
     logger.info('✓ Test post deleted');
 
+    // 7. Test Post Generation (Phase 2)
+logger.info('\n=== Testing Phase 2: Post Generation ===');
+const { postGenerationService } = await import('../services/postGenerationService');
+
+const selectedTheme = await themeService.selectRandomTheme();
+const { promptText: themePrompt } = await themeService.getThemeWithPrompt(selectedTheme.id);
+
+const generatedPost = await postGenerationService.generatePost(selectedTheme, themePrompt);
+logger.info(`✓ Generated post: ${generatedPost.postText.substring(0, 100)}...`);
+logger.info(`✓ Hashtags: ${generatedPost.hashtags.join(', ')}`);
+logger.info(`✓ Tone: ${generatedPost.tone}`);
+
     logger.info('=== ✅ All Phase 1 Tests Passed ===');
     return true;
   } catch (error) {
