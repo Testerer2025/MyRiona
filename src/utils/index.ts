@@ -3,39 +3,42 @@ import path from "path";
 import { geminiApiKeys } from "../secret";
 import logger from "../config/logger";
 
-export async function Instagram_cookiesExist(): Promise<boolean> {
-  try {
-    const cookiesPath = process.env.NODE_ENV === 'production' 
-      ? "/persistent/Instagramcookies.json" 
-      : "./cookies/Instagramcookies.json";
-    
-    await fs.access(cookiesPath);
+export async function Instagram_cookiesExist(
+ cookiesPath: string = "/persistent/Instagramcookies.json"   // Default‑Pfad
+): Promise<boolean> {
+      try {
+        await fs.access(cookiesPath); // Check if file exists
 
-    const cookiesData = await fs.readFile(cookiesPath, "utf-8");
-    const cookies = JSON.parse(cookiesData);
+        const cookiesData = await fs.readFile(cookiesPath, "utf-8");
+        const cookies = JSON.parse(cookiesData);
 
-    const primaryCookie = cookies.find(
-      (cookie: { name: string }) => cookie.name === "sessionid"
-    );
-    const fallbackCookie = cookies.find(
-      (cookie: { name: string }) => cookie.name === "csrftoken"
-    );
+        // Priority-based cookie validation
+        const primaryCookie = cookies.find((cookie: { name: string }) => cookie.name === 'sessionid');
+        const fallbackCookie = cookies.find((cookie: { name: string }) => cookie.name === 'csrftoken');
 
-    const currentTimestamp = Math.floor(Date.now() / 1000);
+        const currentTimestamp = Math.floor(Date.now() / 1000);
 
-    if (primaryCookie && primaryCookie.expires > currentTimestamp) return true;
-    if (fallbackCookie && fallbackCookie.expires > currentTimestamp) return true;
+        // Validate primary cookie (sessionid)
+        if (primaryCookie && primaryCookie.expires > currentTimestamp) {
+            return true;
+        }
 
-    return false;
-  } catch (error) {
-    const err = error as NodeJS.ErrnoException;
-    if (err.code === "ENOENT") {
-      logger.warn("Cookies file does not exist.");
-      return false;
+        // Fallback to csrftoken if sessionid is missing or expired
+        if (fallbackCookie && fallbackCookie.expires > currentTimestamp) {
+            return true;
+        }
+
+        return false;
+    } catch (error) {
+        const err = error as NodeJS.ErrnoException;
+        if (err.code === 'ENOENT') {
+            logger.warn("Cookies file does not exist.");
+            return false;
+        } else {
+            logger.error("Error checking cookies:", error);
+            return false;
+        }
     }
-    logger.error("Error checking cookies:", error);
-    return false;
-  }
 }
 
 export async function saveCookies(
