@@ -1,6 +1,6 @@
 import logger from "../config/logger";
 
-export * from './themeService';
+
 // Graceful shutdown function
 export const shutdown = (server: any) => {
     try {

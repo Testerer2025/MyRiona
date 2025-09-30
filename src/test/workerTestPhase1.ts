@@ -1,5 +1,5 @@
 import { connectDB } from '../config/db';
-import { themeService } from '../services';
+import { themeService } from '../services/themeService';
 import Post from '../models/Post';
 import logger from '../config/logger';
 
