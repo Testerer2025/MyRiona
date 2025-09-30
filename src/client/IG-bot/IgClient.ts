@@ -116,6 +116,28 @@ export class IgClient {
         await this.authenticateUser();
     }
 
+
+    /* Debug Screenshot for Testing */
+        private async debugScreenshot(name: string): Promise<void> {
+        try {
+            const screenshotPath = `/tmp/${name}.png`;
+            await this.page!.screenshot({ path: screenshotPath });
+            
+            // Read and log as base64 for remote debugging
+            const imageBuffer = await fs.readFile(screenshotPath);
+            const base64 = imageBuffer.toString('base64');
+            
+            logger.info(`=== SCREENSHOT: ${name} ===`);
+            logger.info(`data:image/png;base64,${base64.substring(0, 100)}...`);
+            logger.info(`Full screenshot saved to: ${screenshotPath}`);
+            logger.info(`Image size: ${imageBuffer.length} bytes`);
+        } catch (e) {
+            logger.warn(`Could not save screenshot: ${name}`);
+        }
+    }
+    
+    /* Ende Debug Screenshot for Testing */
+
     private async authenticateUser(): Promise<void> {
         logger.info("Authenticating user...");
         
@@ -160,7 +182,7 @@ export class IgClient {
 
             // Take screenshot before navigation
             try {
-                await this.page!.screenshot({ path: '/tmp/before-nav.png' });
+                await this.debugScreenshot('before-nav');
                 logger.info("Screenshot saved to /tmp/before-nav.png");
             } catch (e) {
                 logger.warn("Could not save screenshot");
