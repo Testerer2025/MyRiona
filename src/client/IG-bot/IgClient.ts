@@ -2,22 +2,20 @@ import * as puppeteer from 'puppeteer';
 import puppeteerExtra from "puppeteer-extra";
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import AdblockerPlugin from "puppeteer-extra-plugin-adblocker";
-import UserAgent from "user-agents";
 import { Server } from "proxy-chain";
 import { IGpassword, IGusername } from "../../secret";
 import logger from "../../config/logger";
 import { Instagram_cookiesExist, loadCookies, saveCookies } from "../../utils";
 import { runAgent } from "../../Agent";
 import { getInstagramCommentSchema } from "../../Agent/schema";
-import readline from "readline";
-import fs from "fs/promises";
 import { getShouldExitInteractions } from '../../api/agent';
+import fs from "fs";
+import path from "path";
 
 // Add stealth plugin to puppeteer
 puppeteerExtra.use(StealthPlugin());
 puppeteerExtra.use(
   AdblockerPlugin({
-    // Optionally enable Cooperative Mode for several request interceptors
     interceptResolutionPriority: puppeteer.DEFAULT_INTERCEPT_RESOLUTION_PRIORITY,
   })
 );
@@ -35,17 +33,67 @@ export class IgClient {
         this.password = password || '';
     }
 
+    /**
+     * Find Chrome executable path automatically
+     */
+    private findChromePath(): string | undefined {
+        // 1. Check environment variable
+        if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+            const envPath = process.env.PUPPETEER_EXECUTABLE_PATH;
+            
+            // Check if path exists
+            if (fs.existsSync(envPath)) {
+                logger.info(`Using Chrome from env var: ${envPath}`);
+                return envPath;
+            }
+            
+            // Try with different extension
+            const alternatives = [
+                envPath,
+                path.join(path.dirname(envPath), 'chrome'),
+                path.join(path.dirname(envPath), 'chrome-linux64')
+            ];
+            
+            for (const altPath of alternatives) {
+                if (fs.existsSync(altPath)) {
+                    logger.info(`Found Chrome at alternative path: ${altPath}`);
+                    return altPath;
+                }
+            }
+            
+            logger.warn(`Chrome not found at PUPPETEER_EXECUTABLE_PATH: ${envPath}`);
+        }
+
+        // 2. Try common Render.com paths
+        const renderPaths = [
+            '/opt/render/.cache/puppeteer/chrome/linux-131.0.6778.264/chrome-linux64/chrome',
+            '/opt/render/.cache/puppeteer/chrome/linux-131.0.6778.264/chrome-linux64/chrome-linux64',
+        ];
+
+        for (const chromePath of renderPaths) {
+            if (fs.existsSync(chromePath)) {
+                logger.info(`Found Chrome at: ${chromePath}`);
+                return chromePath;
+            }
+        }
+
+        // 3. Let Puppeteer use its default (should work with npx puppeteer browsers install chrome)
+        logger.info('Using Puppeteer default Chrome path');
+        return undefined;
+    }
+
     async init() {
-        const execPath = process.env.PUPPETEER_EXECUTABLE_PATH;
+        const execPath = this.findChromePath();
 
         // Proxy Setup
-        const { Server } = require('proxy-chain');
         const proxyServer = new Server({ port: 8000 });
         await proxyServer.listen();
         const proxyUrl = `http://localhost:8000`;
         
+        logger.info('Launching Puppeteer browser...');
+        
         this.browser = await puppeteerExtra.launch({
-            executablePath: execPath || undefined,
+            executablePath: execPath,
             headless: true,
             args: [
                 `--proxy-server=${proxyUrl}`,
@@ -59,6 +107,8 @@ export class IgClient {
             ],
         });
         
+        logger.info('Browser launched successfully');
+        
         this.page = await this.browser.newPage();
         await this.page.setViewport({ width: 1366, height: 768 });
         await this.page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
@@ -69,7 +119,7 @@ export class IgClient {
     private async authenticateUser(): Promise<void> {
         logger.info("Authenticating user...");
         
-        const cookiesExist = await Instagram_cookiesExist(); // Ohne Parameter
+        const cookiesExist = await Instagram_cookiesExist();
         
         if (cookiesExist) {
             logger.info("Loading existing cookies.");
@@ -150,7 +200,6 @@ export class IgClient {
         console.log("Checking for notification popup...");
 
         try {
-            // Wait for the dialog to appear, with a timeout
             const dialogSelector = 'div[role="dialog"]';
             await this.page.waitForSelector(dialogSelector, { timeout: 5000 });
             const dialog = await this.page.$(dialogSelector);
@@ -161,7 +210,6 @@ export class IgClient {
                 let notNowButton: puppeteer.ElementHandle<Element> | null = null;
 
                 for (const selector of notNowButtonSelectors) {
-                    // Search within the dialog context
                     const elements = await dialog.$$(selector);
                     for (const element of elements) {
                         try {
@@ -181,9 +229,8 @@ export class IgClient {
                 if (notNowButton) {
                     try {
                         console.log("Dismissing 'Not Now' notification popup...");
-                        // Using evaluate to click because it can be more reliable
                         await notNowButton.evaluate((btn:any) => btn.click());
-                        await delay(1500); // Wait for popup to close
+                        await delay(1500);
                         console.log("'Not Now' notification popup dismissed.");
                     } catch (e) {
                         console.warn("Failed to click 'Not Now' button. It might be gone or covered.", e);
@@ -194,10 +241,10 @@ export class IgClient {
             }
         } catch (error) {
             console.log("No notification popup appeared within the timeout period.");
-            // If it times out, it means no popup, which is fine.
         }
     }
 
+    // ... (rest of your methods remain the same)
     async sendDirectMessage(username: string, message: string) {
         if (!this.page) throw new Error("Page not initialized");
         try {
@@ -232,7 +279,7 @@ export class IgClient {
             }
             if (!messageButton) throw new Error("Message button not found.");
             await messageButton.click();
-            await delay(2000); // Wait for message modal to open
+            await delay(2000);
             await this.handleNotificationPopup();
 
             if (mediaPath) {
@@ -240,7 +287,7 @@ export class IgClient {
                 if (fileInput) {
                     await fileInput.uploadFile(mediaPath);
                     await this.handleNotificationPopup();
-                    await delay(2000); // wait for upload
+                    await delay(2000);
                 } else {
                     logger.warn("File input for media not found.");
                 }
@@ -295,7 +342,6 @@ export class IgClient {
                 await this.handleNotificationPopup();
                 await this.sendDirectMessageWithMedia(username.trim(), message, mediaPath);
                 await this.handleNotificationPopup();
-                // add delay to avoid being flagged
                 await delay(30000);
             }
         }
@@ -303,18 +349,16 @@ export class IgClient {
 
     async interactWithPosts() {
         if (!this.page) throw new Error("Page not initialized");
-        let postIndex = 1; // Start with the first post
-        const maxPosts = 20; // Limit to prevent infinite scrolling
+        let postIndex = 1;
+        const maxPosts = 20;
         const page = this.page;
         while (postIndex <= maxPosts) {
-            // Check for exit flag
             if (typeof getShouldExitInteractions === 'function' && getShouldExitInteractions()) {
                 console.log('Exit from interactions requested. Stopping loop.');
                 break;
             }
             try {
                 const postSelector = `article:nth-of-type(${postIndex})`;
-                // Check if the post exists
                 if (!(await page.$(postSelector))) {
                     console.log("No more posts found. Ending iteration...");
                     return;
@@ -335,7 +379,6 @@ export class IgClient {
                 } else {
                     console.log(`Like button not found for post ${postIndex}.`);
                 }
-                // Extract and log the post caption
                 const captionSelector = `${postSelector} div.x9f619 span._ap3a div span._ap3a`;
                 const captionElement = await page.$(captionSelector);
                 let caption = "";
@@ -345,19 +388,15 @@ export class IgClient {
                 } else {
                     console.log(`No caption found for post ${postIndex}.`);
                 }
-                // Check if there is a '...more' link to expand the caption
                 const moreLinkSelector = `${postSelector} div.x9f619 span._ap3a span div span.x1lliihq`;
                 const moreLink = await page.$(moreLinkSelector);
                 if (moreLink && captionElement) {
                     console.log(`Expanding caption for post ${postIndex}...`);
                     await moreLink.click();
                     const expandedCaption = await captionElement.evaluate((el) => (el as HTMLElement).innerText);
-                    console.log(
-                        `Expanded Caption for post ${postIndex}: ${expandedCaption}`
-                    );
+                    console.log(`Expanded Caption for post ${postIndex}: ${expandedCaption}`);
                     caption = expandedCaption;
                 }
-                // Comment on the post
                 const commentBoxSelector = `${postSelector} textarea`;
                 const commentBox = await page.$(commentBoxSelector);
                 if (commentBox) {
@@ -367,23 +406,15 @@ export class IgClient {
                     const result = await runAgent(schema, prompt);
                     const comment = (result[0]?.comment ?? "") as string;
                     await commentBox.type(comment);
-                    // New selector approach for the post button
                     const postButton = await page.evaluateHandle(() => {
-                        const buttons = Array.from(
-                            document.querySelectorAll('div[role="button"]')
-                        );
-                        return buttons.find(
-                            (button) =>
-                                button.textContent === "Post" && !button.hasAttribute("disabled")
-                        );
+                        const buttons = Array.from(document.querySelectorAll('div[role="button"]'));
+                        return buttons.find((button) => button.textContent === "Post" && !button.hasAttribute("disabled"));
                     });
-                    // Only click if postButton is an ElementHandle and not null
                     const postButtonElement = postButton && postButton.asElement ? postButton.asElement() : null;
                     if (postButtonElement) {
                         console.log(`Posting comment on post ${postIndex}...`);
                         await (postButtonElement as puppeteer.ElementHandle<Element>).click();
                         console.log(`Comment posted on post ${postIndex}.`);
-                        // Wait for comment to be posted and UI to update
                         await delay(2000);
                     } else {
                         console.log("Post button not found.");
@@ -391,15 +422,10 @@ export class IgClient {
                 } else {
                     console.log("Comment box not found.");
                 }
-                // Wait before moving to the next post
                 const waitTime = Math.floor(Math.random() * 5000) + 5000;
-                console.log(
-                    `Waiting ${waitTime / 1000} seconds before moving to the next post...`
-                );
+                console.log(`Waiting ${waitTime / 1000} seconds before moving to the next post...`);
                 await delay(waitTime);
-                // Extra wait to ensure all actions are complete before scrolling
                 await delay(1000);
-                // Scroll to the next post
                 await page.evaluate(() => {
                     window.scrollBy(0, window.innerHeight);
                 });
@@ -415,17 +441,14 @@ export class IgClient {
         if (!this.page) throw new Error("Page not initialized");
         const page = this.page;
         try {
-            // Navigate to the target account's followers page
             await page.goto(`https://www.instagram.com/${targetAccount}/followers/`, {
                 waitUntil: "networkidle2",
             });
             console.log(`Navigated to ${targetAccount}'s followers page`);
 
-            // Wait for the followers modal to load (try robustly)
             try {
                 await page.waitForSelector('div a[role="link"] span[title]');
             } catch {
-                // fallback: wait for dialog
                 await page.waitForSelector('div[role="dialog"]');
             }
             console.log("Followers modal loaded");
@@ -434,22 +457,16 @@ export class IgClient {
             let previousHeight = 0;
             let currentHeight = 0;
             maxFollowers = maxFollowers + 4;
-            // Scroll and collect followers until we reach the desired amount or can't scroll anymore
             console.log(maxFollowers);
             while (followers.length < maxFollowers) {
-                // Get all follower links in the current view
                 const newFollowers = await page.evaluate(() => {
-                    const followerElements =
-                        document.querySelectorAll('div a[role="link"]');
+                    const followerElements = document.querySelectorAll('div a[role="link"]');
                     return Array.from(followerElements)
                         .map((element) => element.getAttribute("href"))
-                        .filter(
-                            (href): href is string => href !== null && href.startsWith("/")
-                        )
-                        .map((href) => href.substring(1)); // Remove leading slash
+                        .filter((href): href is string => href !== null && href.startsWith("/"))
+                        .map((href) => href.substring(1));
                 });
 
-                // Add new unique followers to our list
                 for (const follower of newFollowers) {
                     if (!followers.includes(follower) && followers.length < maxFollowers) {
                         followers.push(follower);
@@ -457,7 +474,6 @@ export class IgClient {
                     }
                 }
 
-                // Scroll the followers modal
                 await page.evaluate(() => {
                     const dialog = document.querySelector('div[role="dialog"]');
                     if (dialog) {
@@ -465,10 +481,8 @@ export class IgClient {
                     }
                 });
 
-                // Wait for potential new content to load
                 await delay(1000);
 
-                // Check if we've reached the bottom
                 currentHeight = await page.evaluate(() => {
                     const dialog = document.querySelector('div[role="dialog"]');
                     return dialog ? dialog.scrollHeight : 0;
