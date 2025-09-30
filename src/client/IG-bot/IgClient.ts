@@ -50,6 +50,7 @@ export class IgClient {
         const top = Math.floor((screenHeight - height) / 2);
         this.browser = await puppeteerExtra.launch({
             headless: process.env.NODE_ENV === 'production',
+            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
             args: [
                 `--window-size=${width},${height}`,
                 ...(process.env.NODE_ENV === 'production' 
@@ -58,14 +59,11 @@ export class IgClient {
                         '--disable-setuid-sandbox',
                         '--disable-dev-shm-usage',
                         '--disable-gpu',
-                        '--disable-software-rasterizer',
-                        '--disable-extensions',
-                        '--single-process' // Wichtig für Worker
+                        '--single-process'
                     ]
                     : [`--window-position=${left},${top}`]
                 )
             ],
-            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined
         });
         this.page = await this.browser.newPage();
         const userAgent = new UserAgent({ deviceCategory: "desktop" });

@@ -7,8 +7,7 @@
     "postbuild": "copyfiles -u 3 src/Agent/characters/*.json build/Agent/characters && copyfiles -u 2 src/config/themes.json build/config && copyfiles -u 3 src/config/prompts/*.txt build/config/prompts",
     "train:link": "tsc && node build/Agent/training/WebsiteScraping.js",
     "train:audio": "tsc && node build/Agent/training/TrainWithAudio.js",
-    "train:youtube": "tsc && node build/Agent/training/youtubeURL.js",
-    "postinstall": "puppeteer browsers install chrome || true"
+    "train:youtube": "tsc && node build/Agent/training/youtubeURL.js"
   },
   "keywords": [],
   "author": "",
