@@ -53,10 +53,19 @@ export class IgClient {
             args: [
                 `--window-size=${width},${height}`,
                 ...(process.env.NODE_ENV === 'production' 
-                    ? ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+                    ? [
+                        '--no-sandbox',
+                        '--disable-setuid-sandbox',
+                        '--disable-dev-shm-usage',
+                        '--disable-gpu',
+                        '--disable-software-rasterizer',
+                        '--disable-extensions',
+                        '--single-process' // Wichtig für Worker
+                    ]
                     : [`--window-position=${left},${top}`]
                 )
             ],
+            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined
         });
         this.page = await this.browser.newPage();
         const userAgent = new UserAgent({ deviceCategory: "desktop" });
