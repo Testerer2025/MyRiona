@@ -13,7 +13,6 @@ import * as fsSync from "fs";
 import * as fsAsync from "fs/promises";
 import path from "path";
 
-// Add stealth plugin to puppeteer
 puppeteerExtra.use(StealthPlugin());
 puppeteerExtra.use(
   AdblockerPlugin({
@@ -34,19 +33,15 @@ export class IgClient {
         this.password = password || '';
     }
 
-    /**
-     * Find Chrome executable path automatically
-     */
     private findChromePath(): string | undefined {
         if (process.env.PUPPETEER_EXECUTABLE_PATH) {
             const envPath = process.env.PUPPETEER_EXECUTABLE_PATH;
             
-            if (fsSync.existsSync(envPath)) {  // ← fsSync
+            if (fsSync.existsSync(envPath)) {
                 logger.info(`Using Chrome from env var: ${envPath}`);
                 return envPath;
             }
             
-            // Try with different extension
             const alternatives = [
                 envPath,
                 path.join(path.dirname(envPath), 'chrome'),
@@ -54,7 +49,7 @@ export class IgClient {
             ];
             
             for (const altPath of alternatives) {
-                if (fs.existsSync(altPath)) {
+                if (fsSync.existsSync(altPath)) {
                     logger.info(`Found Chrome at alternative path: ${altPath}`);
                     return altPath;
                 }
@@ -63,28 +58,51 @@ export class IgClient {
             logger.warn(`Chrome not found at PUPPETEER_EXECUTABLE_PATH: ${envPath}`);
         }
 
-        // 2. Try common Render.com paths
-        const renderPaths = [
-            '/opt/render/.cache/puppeteer/chrome/linux-131.0.6778.264/chrome-linux64/chrome',
-            '/opt/render/.cache/puppeteer/chrome/linux-131.0.6778.264/chrome-linux64/chrome-linux64',
-        ];
-
-        for (const chromePath of renderPaths) {
-            if (fs.existsSync(chromePath)) {
-                logger.info(`Found Chrome at: ${chromePath}`);
-                return chromePath;
+        const cacheDir = '/opt/render/.cache/puppeteer/chrome';
+        logger.info(`Searching for Chrome in: ${cacheDir}`);
+        
+        if (fsSync.existsSync(cacheDir)) {
+            const versions = fsSync.readdirSync(cacheDir);
+            logger.info(`Found versions: ${versions.join(', ')}`);
+            
+            for (const version of versions) {
+                const chromePath = path.join(cacheDir, version, 'chrome-linux64', 'chrome');
+                logger.info(`Checking: ${chromePath}`);
+                
+                if (fsSync.existsSync(chromePath)) {
+                    logger.info(`✓ Chrome found at: ${chromePath}`);
+                    return chromePath;
+                }
             }
         }
 
-        // 3. Let Puppeteer use its default (should work with npx puppeteer browsers install chrome)
         logger.info('Using Puppeteer default Chrome path');
         return undefined;
+    }
+
+    private async debugScreenshot(name: string): Promise<void> {
+        try {
+            const screenshotPath = `/tmp/${name}.png`;
+            await this.page!.screenshot({ path: screenshotPath });
+            
+            const imageBuffer = await fsAsync.readFile(screenshotPath);
+            const base64 = imageBuffer.toString('base64');
+            
+            logger.info(`=== SCREENSHOT: ${name} ===`);
+            logger.info(`Size: ${imageBuffer.length} bytes`);
+            
+            console.log(`\n\n📸 SCREENSHOT ${name.toUpperCase()} (copy to browser to view):`);
+            console.log(`data:image/png;base64,${base64}`);
+            console.log(`\n`);
+            
+        } catch (e) {
+            logger.warn(`Could not save screenshot: ${name}`, e);
+        }
     }
 
     async init() {
         const execPath = this.findChromePath();
 
-        // Proxy Setup
         const proxyServer = new Server({ port: 8000 });
         await proxyServer.listen();
         const proxyUrl = `http://localhost:8000`;
@@ -115,30 +133,6 @@ export class IgClient {
         await this.authenticateUser();
     }
 
-
-    /* Debug Screenshot for Testing */
-    private async debugScreenshot(name: string): Promise<void> {
-        try {
-            const screenshotPath = `/tmp/${name}.png`;
-            await this.page!.screenshot({ path: screenshotPath });
-            
-            const imageBuffer = await fsAsync.readFile(screenshotPath);
-            const base64 = imageBuffer.toString('base64');
-            
-            logger.info(`=== SCREENSHOT: ${name} ===`);
-            logger.info(`Size: ${imageBuffer.length} bytes`);
-            
-            console.log(`\n\n📸 SCREENSHOT ${name.toUpperCase()} (copy to browser to view):`);
-            console.log(`data:image/png;base64,${base64}`);
-            console.log(`\n`);
-            
-        } catch (e) {
-            logger.warn(`Could not save screenshot: ${name}`, e);
-        }
-    }
-    
-    /* Ende Debug Screenshot for Testing */
-
     private async authenticateUser(): Promise<void> {
         logger.info("Authenticating user...");
         
@@ -168,48 +162,81 @@ export class IgClient {
         try {
             logger.info(`Attempting login for user: ${this.username.substring(0, 3)}***`);
             
-            await this.page!.goto("https://www.instagram.com/accounts/login/");
-            logger.info("Login page loaded");
+            await this.page!.goto("https://www.instagram.com/accounts/login/", {
+                waitUntil: 'networkidle2'
+            });
+            
+            await delay(3000);
+            await this.debugScreenshot('01-login-page-loaded');
             
             await this.page!.waitForSelector('input[name="username"]', { timeout: 10000 });
             logger.info("Username field found");
             
-            await this.page!.type('input[name="username"]', this.username);
-            await this.page!.type('input[name="password"]', this.password);
-            logger.info("Credentials entered");
+            await this.page!.type('input[name="username"]', this.username, { delay: 100 });
+            await delay(500);
             
+            await this.page!.type('input[name="password"]', this.password, { delay: 100 });
+            await delay(1000);
+            
+            await this.debugScreenshot('02-credentials-entered');
+            
+            logger.info("Clicking submit button...");
             await this.page!.click('button[type="submit"]');
-            logger.info("Submit button clicked, waiting for navigation...");
-
-            // Take screenshot before navigation
-            try {
-                await this.debugScreenshot('before-nav');
-                logger.info("Screenshot saved to /tmp/before-nav.png");
-            } catch (e) {
-                logger.warn("Could not save screenshot");
+            
+            await delay(5000);
+            
+            const currentUrl = this.page!.url();
+            logger.info(`Current URL after submit: ${currentUrl}`);
+            
+            await this.debugScreenshot('03-after-submit');
+            
+            // Check for challenge
+            if (currentUrl.includes('/challenge/')) {
+                logger.error('⚠️ Instagram CHALLENGE detected!');
+                await this.debugScreenshot('04-challenge-page');
+                throw new Error('Instagram security challenge - manual verification needed');
             }
-
-            await this.page!.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 });
-            logger.info("Navigation completed");
-
+            
+            // Check if still on login page
+            if (currentUrl.includes('/login')) {
+                logger.error('❌ Still on login page!');
+                
+                const errorMsg = await this.page!.evaluate(() => {
+                    const errorEl = document.querySelector('#slfErrorAlert');
+                    return errorEl ? errorEl.textContent : null;
+                });
+                
+                if (errorMsg) {
+                    logger.error(`Instagram error message: ${errorMsg}`);
+                }
+                
+                const bodyText = await this.page!.evaluate(() => document.body.innerText);
+                logger.info(`Page content (first 300 chars): ${bodyText.substring(0, 300)}`);
+                
+                await this.debugScreenshot('04-login-failed');
+                throw new Error('Login failed - still on login page');
+            }
+            
+            logger.info('✅ Login appears successful!');
+            
+            await delay(3000);
+            await this.debugScreenshot('05-logged-in');
+            
             const cookies = await this.page!.cookies();
             await saveCookies("/persistent/Instagramcookies.json", cookies);
-
-            logger.info("Login successful, cookies saved");
-            await this.handleNotificationPopup();
-        } catch (error) {
-            logger.error("Login failed:", error);
             
-            // Take error screenshot
+            logger.info("Cookies saved successfully");
+            await this.handleNotificationPopup();
+            
+        } catch (error) {
+            logger.error("❌ Login failed:", error);
+            
             try {
-                await this.page!.screenshot({ path: '/tmp/login-error.png' });
-                logger.info("Error screenshot saved to /tmp/login-error.png");
-                
-                // Log page URL and title
+                await this.debugScreenshot('99-error-state');
                 const url = this.page!.url();
                 const title = await this.page!.title();
-                logger.info(`Current URL: ${url}`);
-                logger.info(`Page title: ${title}`);
+                logger.info(`Error URL: ${url}`);
+                logger.info(`Error Page title: ${title}`);
             } catch (e) {
                 logger.warn("Could not capture error state");
             }
@@ -217,7 +244,6 @@ export class IgClient {
             throw new Error("Authentication failed");
         }
     }
-
     async handleNotificationPopup() {
         if (!this.page) throw new Error("Page not initialized");
         console.log("Checking for notification popup...");
