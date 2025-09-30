@@ -1,17 +1,17 @@
 export const getPostGenerationSchema = () => ({
-  type: "object",
+  type: "OBJECT" as const,
   properties: {
     postText: {
-      type: "string",
+      type: "STRING" as const,
       description: "Der Instagram-Post-Text in maximal 450 Zeichen"
     },
     hashtags: {
-      type: "array",
-      items: { type: "string" },
+      type: "ARRAY" as const,
+      items: { type: "STRING" as const },
       description: "Array von 3 Hashtags ohne # Symbol"
     },
     tone: {
-      type: "string",
+      type: "STRING" as const,
       description: "Der verwendete Ton (z.B. casual, friendly, exciting)"
     }
   },
@@ -19,20 +19,20 @@ export const getPostGenerationSchema = () => ({
 });
 
 export const getSimilarityCheckSchema = () => ({
-  type: "object",
+  type: "OBJECT" as const,
   properties: {
     avoidKeywords: {
-      type: "array",
-      items: { type: "string" },
+      type: "ARRAY" as const,
+      items: { type: "STRING" as const },
       description: "Keywords die vermieden werden sollten"
     },
     avoidThemes: {
-      type: "array",
-      items: { type: "string" },
+      type: "ARRAY" as const,
+      items: { type: "STRING" as const },
       description: "Themen die vermieden werden sollten"
     },
     recommendation: {
-      type: "string",
+      type: "STRING" as const,
       description: "Empfehlung für einen neuen, unterschiedlichen Ansatz"
     }
   },
