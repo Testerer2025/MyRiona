@@ -3,7 +3,6 @@ import Post from "../models/Post";
 import logger from "../config/logger";
 import { geminiApiKeys } from "../secret";
 import { themeManager, Theme } from "../config/themes";
-import { getPostGenerationSchema, getSimilarityCheckSchema } from "../Agent/schema/postSchema";
 
 class PostGenerationService {
   private currentApiKeyIndex = 0;
@@ -70,21 +69,26 @@ class PostGenerationService {
 Posts:
 ${lastPosts.map((post, i) => `${i + 1}. ${post}`).join('\n\n')}
 
-Gib eine strukturierte Analyse zurück.`;
+Antworte NUR mit einem gültigen JSON-Objekt in diesem Format:
+{
+  "avoidKeywords": ["keyword1", "keyword2"],
+  "avoidThemes": ["theme1", "theme2"],
+  "recommendation": "deine empfehlung"
+}`;
 
     try {
       const googleAI = new GoogleGenerativeAI(this.getApiKey());
       const model = googleAI.getGenerativeModel({
-        model: "gemini-2.0-flash-exp",
-        generationConfig: {
-          responseMimeType: "application/json",
-          responseSchema: getSimilarityCheckSchema()
-        }
+        model: "gemini-2.0-flash-exp"
       });
 
       const result = await model.generateContent(prompt);
       const responseText = result.response.text();
-      const data = JSON.parse(responseText);
+      
+      // Extract JSON from response (sometimes Gemini wraps it in markdown)
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      const jsonStr = jsonMatch ? jsonMatch[0] : responseText;
+      const data = JSON.parse(jsonStr);
 
       logger.info(`Similarity check completed. Avoid keywords: ${data.avoidKeywords.join(', ')}`);
       return data;
@@ -131,21 +135,26 @@ STIL:
 - Einladend und freundlich
 - Keine übertriebenen Emojis
 
-Erstelle einen ansprechenden Post, der sich von vorherigen Posts abhebt.`;
+Antworte NUR mit einem gültigen JSON-Objekt in diesem Format:
+{
+  "postText": "der post text",
+  "hashtags": ["tag1", "tag2", "tag3"],
+  "tone": "casual"
+}`;
 
     try {
       const googleAI = new GoogleGenerativeAI(this.getApiKey());
       const model = googleAI.getGenerativeModel({
-        model: "gemini-2.0-flash-exp",
-        generationConfig: {
-          responseMimeType: "application/json",
-          responseSchema: getPostGenerationSchema()
-        }
+        model: "gemini-2.0-flash-exp"
       });
 
       const result = await model.generateContent(prompt);
       const responseText = result.response.text();
-      const data = JSON.parse(responseText);
+      
+      // Extract JSON from response
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      const jsonStr = jsonMatch ? jsonMatch[0] : responseText;
+      const data = JSON.parse(jsonStr);
 
       logger.info(`Generated post text (${data.postText.length} chars): ${data.postText.substring(0, 50)}...`);
       return data;
