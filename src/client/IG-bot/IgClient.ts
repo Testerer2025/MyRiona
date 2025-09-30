@@ -40,6 +40,20 @@ export class IgClient {
         // await server.listen();
         // const proxyUrl = server.getProxyUrl();
         // logger.info(`Using proxy URL: ${proxyUrl}`);
+        const execPath = process.env.PUPPETEER_EXECUTABLE_PATH;
+        if (execPath) {
+            const fs = require('fs');
+            if (!fs.existsSync(execPath)) {
+                logger.warn('Chrome not found, installing...');
+                const { execSync } = require('child_process');
+                try {
+                    execSync('npx puppeteer browsers install chrome', { stdio: 'inherit' });
+                    logger.info('Chrome installed successfully');
+                } catch (error) {
+                    logger.error('Failed to install Chrome:', error);
+                }
+            }
+        }
 
         // Center the window on a 1920x1080 screen
         const width = 1280;
@@ -48,9 +62,10 @@ export class IgClient {
         const screenHeight = 1080;
         const left = Math.floor((screenWidth - width) / 2);
         const top = Math.floor((screenHeight - height) / 2);
+        
         this.browser = await puppeteerExtra.launch({
             headless: process.env.NODE_ENV === 'production',
-            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+            executablePath: execPath || undefined,
             args: [
                 `--window-size=${width},${height}`,
                 ...(process.env.NODE_ENV === 'production' 
