@@ -109,16 +109,31 @@ export class IgClient {
 
     private async loginWithCredentials(): Promise<void> {
         try {
-            // WICHTIG: Kein { waitUntil } beim goto
+            logger.info(`Attempting login for user: ${this.username.substring(0, 3)}***`);
+            
             await this.page!.goto("https://www.instagram.com/accounts/login/");
+            logger.info("Login page loaded");
+            
             await this.page!.waitForSelector('input[name="username"]', { timeout: 10000 });
-
+            logger.info("Username field found");
+            
             await this.page!.type('input[name="username"]', this.username);
             await this.page!.type('input[name="password"]', this.password);
+            logger.info("Credentials entered");
+            
             await this.page!.click('button[type="submit"]');
+            logger.info("Submit button clicked, waiting for navigation...");
 
-            // Jetzt erst warten
+            // Take screenshot before navigation
+            try {
+                await this.page!.screenshot({ path: '/tmp/before-nav.png' });
+                logger.info("Screenshot saved to /tmp/before-nav.png");
+            } catch (e) {
+                logger.warn("Could not save screenshot");
+            }
+
             await this.page!.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 });
+            logger.info("Navigation completed");
 
             const cookies = await this.page!.cookies();
             await saveCookies("/persistent/Instagramcookies.json", cookies);
@@ -127,6 +142,21 @@ export class IgClient {
             await this.handleNotificationPopup();
         } catch (error) {
             logger.error("Login failed:", error);
+            
+            // Take error screenshot
+            try {
+                await this.page!.screenshot({ path: '/tmp/login-error.png' });
+                logger.info("Error screenshot saved to /tmp/login-error.png");
+                
+                // Log page URL and title
+                const url = this.page!.url();
+                const title = await this.page!.title();
+                logger.info(`Current URL: ${url}`);
+                logger.info(`Page title: ${title}`);
+            } catch (e) {
+                logger.warn("Could not capture error state");
+            }
+            
             throw new Error("Authentication failed");
         }
     }
