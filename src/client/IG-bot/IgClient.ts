@@ -36,10 +36,7 @@ export class IgClient {
     }
 
     async init() {
-        // const server = new Server({ port: 8000 });
-        // await server.listen();
-        // const proxyUrl = server.getProxyUrl();
-        // logger.info(`Using proxy URL: ${proxyUrl}`);
+        // Chrome Installation bleibt
         const execPath = process.env.PUPPETEER_EXECUTABLE_PATH;
         if (execPath) {
             const fs = require('fs');
@@ -55,35 +52,32 @@ export class IgClient {
             }
         }
 
-        // Center the window on a 1920x1080 screen
-        const width = 1280;
-        const height = 800;
-        const screenWidth = 1920;
-        const screenHeight = 1080;
-        const left = Math.floor((screenWidth - width) / 2);
-        const top = Math.floor((screenHeight - height) / 2);
+        // Proxy Setup (wie im alten Code)
+        const { Server } = require('proxy-chain');
+        const proxyServer = new Server({ port: 8000 });
+        await proxyServer.listen();
+        const proxyUrl = `http://localhost:8000`;
         
         this.browser = await puppeteerExtra.launch({
-            headless: process.env.NODE_ENV === 'production',
             executablePath: execPath || undefined,
+            headless: true,
             args: [
-                `--window-size=${width},${height}`,
-                ...(process.env.NODE_ENV === 'production' 
-                    ? [
-                        '--no-sandbox',
-                        '--disable-setuid-sandbox',
-                        '--disable-dev-shm-usage',
-                        '--disable-gpu',
-                        '--single-process'
-                    ]
-                    : [`--window-position=${left},${top}`]
-                )
+                `--proxy-server=${proxyUrl}`,
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+                '--no-zygote',
+                '--disable-web-security',
+                '--disable-features=VizDisplayCompositor'
             ],
         });
+        
         this.page = await this.browser.newPage();
-        const userAgent = new UserAgent({ deviceCategory: "desktop" });
-        await this.page.setUserAgent(userAgent.toString());
-        await this.page.setViewport({ width, height });
+        
+        // Fester User-Agent wie im alten Code
+        await this.page.setViewport({ width: 1366, height: 768 });
+        await this.page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
 
         await this.authenticateUser();
     }
@@ -115,6 +109,7 @@ export class IgClient {
 
     private async loginWithCredentials(): Promise<void> {
         try {
+            // WICHTIG: Kein { waitUntil } beim goto
             await this.page!.goto("https://www.instagram.com/accounts/login/");
             await this.page!.waitForSelector('input[name="username"]', { timeout: 10000 });
 
@@ -122,6 +117,7 @@ export class IgClient {
             await this.page!.type('input[name="password"]', this.password);
             await this.page!.click('button[type="submit"]');
 
+            // Jetzt erst warten
             await this.page!.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 });
 
             const cookies = await this.page!.cookies();
