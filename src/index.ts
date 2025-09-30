@@ -3,10 +3,20 @@ import logger from "./config/logger";
 import { shutdown } from "./services";
 import app from "./app";
 import { initAgent } from "./Agent/index";
+import { testPhase1 } from './test/workerTestPhase1';
 
 dotenv.config();
 
 async function startServer() {
+   try {
+    // TEST PHASE 1
+    await testPhase1();
+    
+    await initAgent();
+  } catch (err) {
+    logger.error("Error during agent initialization:", err);
+    process.exit(1);
+  }
   try {
     await initAgent();
   } catch (err) {
