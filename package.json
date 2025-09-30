@@ -8,7 +8,7 @@
     "train:link": "tsc && node build/Agent/training/WebsiteScraping.js",
     "train:audio": "tsc && node build/Agent/training/TrainWithAudio.js",
     "train:youtube": "tsc && node build/Agent/training/youtubeURL.js",
-    "postinstall": "puppeteer browsers install chrome || true",
+    "postinstall": "puppeteer browsers install chrome || true"
   },
   "keywords": [],
   "author": "",
