@@ -85,48 +85,55 @@ export class IgClient {
         await this.page.setUserAgent(userAgent.toString());
         await this.page.setViewport({ width, height });
 
-        if (await Instagram_cookiesExist()) {
-            await this.loginWithCookies();
-        } else {
-            await this.loginWithCredentials();
-        }
+        await this.authenticateUser();
     }
 
-    private async loginWithCookies() {
-        if (!this.page) throw new Error("Page not initialized");
-        const cookies = await loadCookies("./cookies/Instagramcookies.json");
-        if(cookies.length > 0) {
-            await this.page.setCookie(...cookies);
-        }
+    private async authenticateUser(): Promise<void> {
+        logger.info("Authenticating user...");
         
-        logger.info("Loaded cookies. Navigating to Instagram home page.");
-        await this.page.goto("https://www.instagram.com/", {
-            waitUntil: "networkidle2",
-        });
-        const url = this.page.url();
-        if (url.includes("/login/")) {
-            logger.warn("Cookies are invalid or expired. Falling back to credentials login.");
-            await this.loginWithCredentials();
-        } else {
-            logger.info("Successfully logged in with cookies.");
+        const cookiesPath = "/persistent/Instagramcookies.json";
+        const cookiesExist = await Instagram_cookiesExist(cookiesPath);
+        
+        if (cookiesExist) {
+            logger.info("Loading existing cookies.");
+            const cookies = await loadCookies(cookiesPath);
+            if (cookies && cookies.length > 0) {
+                await this.page!.setCookie(...cookies);
+            }
+            await this.page!.goto("https://www.instagram.com/", { waitUntil: 'networkidle2' });
+
+            const isLoggedIn = await this.page!.$("a[href='/direct/inbox/']");
+            if (isLoggedIn) {
+                logger.info("Authentication successful with cookies");
+                return;
+            }
+            logger.warn("Cookies invalid, logging in with credentials.");
         }
+
+        await this.loginWithCredentials();
+        logger.info("Authentication successful");
     }
 
-    private async loginWithCredentials() {
-        if (!this.page || !this.browser) throw new Error("Browser/Page not initialized");
-        logger.info("Logging in with credentials...");
-        await this.page.goto("https://www.instagram.com/accounts/login/", {
-            waitUntil: "networkidle2",
-        });
-        await this.page.waitForSelector('input[name="username"]');
-        await this.page.type('input[name="username"]', this.username);
-        await this.page.type('input[name="password"]', this.password);
-        await this.page.click('button[type="submit"]');
-        await this.page.waitForNavigation({ waitUntil: "networkidle2" });
-        const cookies = await this.page.cookies();
-        await saveCookies("./cookies/Instagramcookies.json", cookies);
-        logger.info("Successfully logged in and saved cookies.");
-        await this.handleNotificationPopup();
+    private async loginWithCredentials(): Promise<void> {
+        try {
+            await this.page!.goto("https://www.instagram.com/accounts/login/");
+            await this.page!.waitForSelector('input[name="username"]', { timeout: 10000 });
+
+            await this.page!.type('input[name="username"]', this.username);
+            await this.page!.type('input[name="password"]', this.password);
+            await this.page!.click('button[type="submit"]');
+
+            await this.page!.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 });
+
+            const cookies = await this.page!.cookies();
+            await saveCookies("/persistent/Instagramcookies.json", cookies);
+
+            logger.info("Login successful, cookies saved");
+            await this.handleNotificationPopup();
+        } catch (error) {
+            logger.error("Login failed:", error);
+            throw new Error("Authentication failed");
+        }
     }
 
     async handleNotificationPopup() {
