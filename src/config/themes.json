@@ -4,30 +4,32 @@
       "id": "bar_showcase",
       "name": "Bar Showcase",
       "enabled": true,
-      "weight": 0,
+      "weight": 1,
       "promptFile": "bar_showcase.txt",
       "image": {
-        "prompt": "Stillleben von Objekten in einer Bar, keine Personen oder Schriften",
+        "prompt": "Füge Menschen, die in der Bar am trinken sind, in das Bild ein. Gemütliche Atmosphäre, Dresscode: Casual.",
         "apiStyle": "natural",
-        "details": "Gläser, Dartscheiben, Cocktails, warme Beleuchtung",
+        "details": "Fotorealistische Darstellung, warme Beleuchtung.",
         "size": "1024x1024",
         "quality": "standard",
-        "usePostingText": false 
+        "usePostingText": false,
+        "referenceImage": ["bar1.jpg"] 
       }
     },
     {
       "id": "bar_showcase_people",
       "name": "Bar Showcase mit Personen",
       "enabled": true,
-      "weight": 0,
+      "weight": 1,
       "promptFile": "bar_showcase_people.txt",
       "image": {
-        "prompt": "Eine Bar mit Personen am Dartspielen. Eine typische Bar-Atmosphäre. Auf dem von dir generierten Bild dürfen auf gar keinen Fall dürfen Schriften oder Text in irgendeiner Form sichtbar sein.",
+        "prompt": "Füge Menschen, die in der Bar am dartspielen sind und teilweise Gläser mit Bier und Cocktails in den Händen halten, in das Bild ein. Gemütliche Atmosphäre, Dresscode: Casual.",
         "apiStyle": "natural",
-        "details": "Gläser, Dartscheiben, Cocktails, warme Beleuchtung",
+        "details": "Fotorealistische Darstellung, warme Beleuchtung.",
         "size": "1024x1024",
         "quality": "standard",
-        "usePostingText": false 
+        "usePostingText": false,
+        "referenceImage": ["dart1.jpg", "dart2.jpg", "dart3.jpg"]
       }
     },
     {
@@ -43,22 +45,6 @@
         "size": "1024x1024",
         "quality": "standard",
         "usePostingText": false 
-      }
-    },
-    {
-      "id": "terrace_post_with_image",
-      "name": "Terrassen Post mit Bild",
-      "enabled": true,
-      "weight": 1,
-      "promptFile": "terrace_post.txt",
-      "image": {
-        "prompt": "Setze auf dem Bild Personen ein die gemütlich Drinks nehmen und entspannt die Sonne geniessen.",
-        "apiStyle": "natural",
-        "details": "Sonnenschein, Pflanzen, entspannte Atmosphäre, Drinks auf Tischen, lächelnde Menschen.",
-        "size": "1024x1024",
-        "quality": "standard",
-        "usePostingText": false ,
-        "referenceImage": ["meer2.jpg"]
       }
     },
     {
