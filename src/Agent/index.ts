@@ -5,7 +5,6 @@ import { handleError } from "../utils";
 import { InstagramCommentSchema } from "./schema";
 import fs from "fs";
 import path from "path";
-import * as readlineSync from "readline-sync";
 
 // Track API key state across requests
 let currentAgentApiKeyIndex = 0;
@@ -86,6 +85,9 @@ export async function runAgent(
   }
 }
 
+/**
+ * Choose character based on CHARACTER_FILE env variable or fallback to first .json file
+ */
 export function chooseCharacter(): any {
   const charactersDir = (() => {
     const buildPath = path.join(__dirname, "characters");
@@ -94,26 +96,49 @@ export function chooseCharacter(): any {
       : path.join(process.cwd(), "src", "Agent", "characters");
   })();
 
+  // Check if CHARACTER_FILE env variable is set
+  const characterFile = process.env.CHARACTER_FILE;
+
+  if (characterFile) {
+    const chosenFile = path.join(charactersDir, characterFile);
+    
+    if (!fs.existsSync(chosenFile)) {
+      logger.error(`Character file not found: ${characterFile}`);
+      logger.error(`Looking in directory: ${charactersDir}`);
+      throw new Error(`Character file not found: ${characterFile}`);
+    }
+
+    logger.info(`Using character from env: ${characterFile}`);
+    const data = fs.readFileSync(chosenFile, "utf8");
+    return JSON.parse(data);
+  }
+
+  // Fallback: Use first .json file in directory
   const files = fs.readdirSync(charactersDir);
   const jsonFiles = files.filter((file) => file.endsWith(".json"));
+  
   if (jsonFiles.length === 0) {
-    throw new Error("No character JSON files found");
+    throw new Error("No character JSON files found in characters directory");
   }
 
   const chosenFile = path.join(charactersDir, jsonFiles[0]);
-  logger.info(`Automatically selected character: ${jsonFiles[0]}`);
+  logger.warn(`No CHARACTER_FILE env variable set, using first available: ${jsonFiles[0]}`);
+  
   const data = fs.readFileSync(chosenFile, "utf8");
   return JSON.parse(data);
 }
 
+/**
+ * Initialize the agent with selected character
+ */
 export function initAgent(): any {
   try {
     const character = chooseCharacter();
-    console.log("Character selected:", character);
+    logger.info(`Character loaded successfully: ${character.name || 'Unknown'}`);
     return character;
   } catch (error) {
-    console.error("Error selecting character:", error);
-    process.exit(1);
+    logger.error("Error selecting character:", error);
+    throw error;
   }
 }
 
