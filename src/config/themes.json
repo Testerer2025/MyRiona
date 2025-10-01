@@ -4,7 +4,7 @@
       "id": "bar_showcase",
       "name": "Bar Showcase",
       "enabled": true,
-      "weight": 1,
+      "weight": 0,
       "promptFile": "bar_showcase.txt",
       "image": {
         "prompt": "Stillleben von Objekten in einer Bar, keine Personen oder Schriften",
@@ -19,7 +19,7 @@
       "id": "bar_showcase_people",
       "name": "Bar Showcase mit Personen",
       "enabled": true,
-      "weight": 1,
+      "weight": 0,
       "promptFile": "bar_showcase_people.txt",
       "image": {
         "prompt": "Eine Bar mit Personen am Dartspielen. Eine typische Bar-Atmosphäre. Auf dem von dir generierten Bild dürfen auf gar keinen Fall dürfen Schriften oder Text in irgendeiner Form sichtbar sein.",
@@ -34,7 +34,7 @@
       "id": "terrace_post",
       "name": "Terrassen Post",
       "enabled": true,
-      "weight": 1,
+      "weight": 0,
       "promptFile": "terrace_post.txt",
       "image": {
         "prompt": "Personen entspannen auf einer schönen, sonnigen Bar-Terrasse mit Drinks. Auf dem von dir generierten Bild dürfen auf gar keinen Fall dürfen Schriften oder Text in irgendeiner Form sichtbar sein.",
@@ -42,8 +42,23 @@
         "details": "Sonnenschein, Pflanzen, entspannte Atmosphäre, Drinks auf Tischen, lächelnde Menschen.",
         "size": "1024x1024",
         "quality": "standard",
+        "usePostingText": false 
+      }
+    },
+    {
+      "id": "terrace_post_with_image",
+      "name": "Terrassen Post mit Bild",
+      "enabled": true,
+      "weight": 1,
+      "promptFile": "terrace_post.txt",
+      "image": {
+        "prompt": "Setze auf dem Bild Personen ein die gemütlich Drinks nehmen und entspannt die Sonne geniessen.",
+        "apiStyle": "natural",
+        "details": "Sonnenschein, Pflanzen, entspannte Atmosphäre, Drinks auf Tischen, lächelnde Menschen.",
+        "size": "1024x1024",
+        "quality": "standard",
         "usePostingText": false ,
-        "referenceImage": "meer.jpg"
+        "referenceImage": ["bar_people_1.jpg"]
       }
     },
     {
