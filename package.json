@@ -4,7 +4,7 @@
   "main": "src/index.ts",
   "scripts": {
     "start": "npx puppeteer browsers install chrome && npx tsc && npm run postbuild && node build/index.js",
-    "postbuild": "copyfiles -u 3 src/Agent/characters/*.json build/Agent/characters && copyfiles -u 2 src/config/themes.json build/config && copyfiles -u 3 src/config/prompts/*.txt build/config/prompts",
+    "postbuild": "copyfiles -u 3 src/Agent/characters/*.json build/Agent/characters && copyfiles -u 2 src/config/themes.json build/config && copyfiles -u 3 src/config/prompts/*.txt build/config/prompts && copyfiles -u 3 'src/config/reference-images/**/*' build/config/reference-images",
     "train:link": "tsc && node build/Agent/training/WebsiteScraping.js",
     "train:audio": "tsc && node build/Agent/training/TrainWithAudio.js",
     "train:youtube": "tsc && node build/Agent/training/youtubeURL.js"
