@@ -42,7 +42,8 @@
         "details": "Sonnenschein, Pflanzen, entspannte Atmosphäre, Drinks auf Tischen, lächelnde Menschen.",
         "size": "1024x1024",
         "quality": "standard",
-        "usePostingText": false 
+        "usePostingText": false ,
+        "referenceImage": "meer.jpg"
       }
     },
     {

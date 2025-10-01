@@ -40,10 +40,12 @@ class PostingOrchestrator {
       logger.info(`Generated post text (${postText.length} chars)`);
       logger.debug(`Post text: ${postText.substring(0, 100)}...`);
 
-      // 5. Generate image with Gemini Image (Nano Banana)
+      // 5. Generate image with Gemini Image (with optional reference image)
       logger.info('Generating image with Gemini Flash...');
       const imagePrompt = this.buildImagePrompt(selectedTheme, postText);
-      const imageBuffer = await imageGenerationService.generateImage(imagePrompt);
+      const referenceImage = this.getReferenceImage(selectedTheme);
+      
+      const imageBuffer = await imageGenerationService.generateImage(imagePrompt, referenceImage);
       
       // Save image temporarily
       const timestamp = Date.now();
@@ -128,9 +130,9 @@ class PostingOrchestrator {
         const backupPostText = await themeService.getRandomBackupPost();
         logger.info('Using backup post text');
 
-        // Generate a simple image for backup
+        // Generate a simple image for backup (without reference image)
         const backupImagePrompt = 'Eine gemütliche Bar-Atmosphäre mit warmer Beleuchtung, Dartscheibe und Drinks';
-        const imageBuffer = await imageGenerationService.generateImage(backupImagePrompt);
+        const imageBuffer = await imageGenerationService.generateImage(backupImagePrompt, undefined);
         const imagePath = await imageGenerationService.saveImageToTemp(imageBuffer, 'backup-post.jpg');
 
         // Post to Instagram
@@ -200,6 +202,13 @@ class PostingOrchestrator {
     }
 
     return prompt;
+  }
+
+  /**
+   * Get reference image(s) from theme config
+   */
+  private getReferenceImage(theme: any): string | string[] | undefined {
+    return theme.image?.referenceImage;
   }
 
   /**
