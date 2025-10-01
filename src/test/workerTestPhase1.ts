@@ -44,53 +44,68 @@ export async function testPhase1() {
     logger.info('✓ Test post deleted');
 
     // 7. Test Post Generation (Phase 2)
-logger.info('\n=== Testing Phase 2: Post Generation ===');
-const { postGenerationService } = await import('../services/postGenerationService');
+    logger.info('\n=== Testing Phase 2: Post Generation ===');
+    const { postGenerationService } = await import('../services/postGenerationService');
 
-const selectedTheme = await themeService.selectRandomTheme();
-const { promptText: themePrompt } = await themeService.getThemeWithPrompt(selectedTheme.id);
+    const selectedTheme = await themeService.selectRandomTheme();
+    const { promptText: themePrompt } = await themeService.getThemeWithPrompt(selectedTheme.id);
 
-const generatedPost = await postGenerationService.generatePost(selectedTheme, themePrompt);
-logger.info(`✓ Generated post: ${generatedPost.postText.substring(0, 100)}...`);
-logger.info(`✓ Hashtags: ${generatedPost.hashtags.join(', ')}`);
-logger.info(`✓ Tone: ${generatedPost.tone}`);
+    const generatedPost = await postGenerationService.generatePost(selectedTheme, themePrompt);
+    logger.info(`✓ Generated post: ${generatedPost.postText.substring(0, 100)}...`);
+    logger.info(`✓ Hashtags: ${generatedPost.hashtags.join(', ')}`);
+    logger.info(`✓ Tone: ${generatedPost.tone}`);
 
-// 8. Test Image Generation (Phase 3)
-logger.info('\n=== Testing Phase 3: Image Generation ===');
-const { imageGenerationService } = await import('../services/imageGenerationService');
+    // 8. Test Image Generation (Phase 3)
+    logger.info('\n=== Testing Phase 3: Image Generation ===');
+    const { imageGenerationService } = await import('../services/imageGenerationService');
 
-// 9. Test Instagram Post Upload (Phase 4)
-logger.info('\n=== Testing Phase 4: Instagram Post Upload ===');
-const { instagramPostService } = await import('../services/instagramPostService');
+    try {
+      const testImagePrompt = selectedTheme.image.prompt;
+      const imageBuffer = await imageGenerationService.generateImage(testImagePrompt);
+      logger.info(`✓ Image generated: ${imageBuffer.length} bytes`);
+      
+      const imagePath = await imageGenerationService.saveImageToTemp(imageBuffer, 'test-image.jpg');
+      logger.info(`✓ Image saved to: ${imagePath}`);
+    } catch (error) {
+      logger.error('Image generation test failed:', error);
+      logger.warn('Skipping image generation test - may not be supported yet');
+    }
 
-try {
-  // Use the image we generated in Phase 3
-  const testCaption = "Test post from Riona AI Bot 🤖\n\n#test #bot #automation";
-  await instagramPostService.postToInstagram('/tmp/test-image.jpg', testCaption);
-  logger.info('✓ Instagram post uploaded successfully');
-} catch (error) {
-  logger.error('Instagram post upload failed:', error);
-  logger.warn('This is expected if not logged in or selectors changed');
-}
+    // 9. Test Instagram Post Upload (Phase 4)
+    logger.info('\n=== Testing Phase 4: Instagram Post Upload ===');
+    const { instagramPostService } = await import('../services/instagramPostService');
 
-try {
-  const testImagePrompt = "A cozy bar with dart boards, drinks on tables, warm lighting, no text visible";
-  const imageBuffer = await imageGenerationService.generateImage(testImagePrompt);
-  logger.info(`✓ Image generated: ${imageBuffer.length} bytes`);
-  
-  const imagePath = await imageGenerationService.saveImageToTemp(imageBuffer, 'test-image.jpg');
-  logger.info(`✓ Image saved to: ${imagePath}`);
-} catch (error) {
-  logger.error('Image generation test failed:', error);
-  logger.warn('Skipping image generation test - may not be supported yet');
-}
+    try {
+      const testCaption = "Test post from Riona AI Bot 🤖\n\n#test #bot #automation";
+      await instagramPostService.postToInstagram('/tmp/test-image.jpg', testCaption);
+      logger.info('✓ Instagram post uploaded successfully');
+    } catch (error) {
+      logger.error('Instagram post upload failed:', error);
+      logger.warn('This is expected if not logged in or selectors changed');
+    }
 
-    logger.info('=== ✅ All Phase 1 Tests Passed ===');
+    // 10. Test Full Posting Workflow (Phase 5)
+    logger.info('\n=== Testing Phase 5: Full Posting Workflow ===');
+    const { postingOrchestrator } = await import('../services/postingOrchestrator');
+
+    try {
+      logger.info('Executing complete post workflow...');
+      const result = await postingOrchestrator.executePostWithFallback();
+      
+      if (result.success) {
+        logger.info(`✓ Full workflow successful! Post ID: ${result.postId}`);
+      } else {
+        logger.error(`✗ Full workflow failed: ${result.error}`);
+      }
+    } catch (error) {
+      logger.error('Phase 5 test failed:', error);
+      logger.warn('This is expected if Instagram is not accessible');
+    }
+
+    logger.info('=== ✅ All Tests Completed ===');
     return true;
   } catch (error) {
-    logger.error('=== ❌ Phase 1 Tests Failed ===', error);
+    logger.error('=== ❌ Tests Failed ===', error);
     return false;
   }
-
-  
 }

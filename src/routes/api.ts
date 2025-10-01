@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 import { signToken, verifyToken, getTokenFromRequest } from '../secret';
 import fs from 'fs/promises';
 import path from 'path';
+import { postingOrchestrator } from '../services/postingOrchestrator';
 
 const router = express.Router();
 
@@ -74,6 +75,44 @@ router.delete('/clear-cookies', async (req, res) => {
     } else {
       res.status(500).json({ success: false, message: 'Failed to clear cookies.', error: err.message });
     }
+  }
+});
+
+router.post('/instagram/post', async (req: Request, res: Response) => {
+  try {
+    logger.info('📱 Instagram post triggered via API');
+    const result = await postingOrchestrator.executePostWithFallback();
+    
+    if (result.success) {
+      res.status(200).json({
+        success: true,
+        message: 'Post created successfully',
+        postId: result.postId
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: 'Post creation failed',
+        error: result.error
+      });
+    }
+  } catch (error: any) {
+    logger.error('API post endpoint error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+});
+
+router.get('/instagram/stats', async (req: Request, res: Response) => {
+  try {
+    const stats = await postingOrchestrator.getPostStats();
+    res.status(200).json({ success: true, stats });
+  } catch (error: any) {
+    logger.error('Stats endpoint error:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

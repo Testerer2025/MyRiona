@@ -96,3 +96,15 @@ export function getTokenFromRequest(req: Request): string | null {
   }
   return null;
 }
+
+const validKeys = geminiApiKeys.filter(key => 
+  key && 
+  !key.startsWith('API_KEY_') && 
+  !key.startsWith('default_')
+);
+
+if (validKeys.length === 0) {
+  throw new Error('No valid Gemini API keys found');
+}
+
+export { validKeys as geminiApiKeys };
