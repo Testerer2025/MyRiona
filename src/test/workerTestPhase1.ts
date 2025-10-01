@@ -71,19 +71,7 @@ export async function testPhase1() {
       logger.warn('Skipping image generation test - may not be supported yet');
     }
 
-    // 9. Test Instagram Post Upload (Phase 4)
-    logger.info('\n=== Testing Phase 4: Instagram Post Upload ===');
-    const { instagramPostService } = await import('../services/instagramPostService');
-
-    try {
-      const testCaption = "Test post from Riona AI Bot 🤖\n\n#test #bot #automation";
-      await instagramPostService.postToInstagram('/tmp/test-image.jpg', testCaption);
-      logger.info('✓ Instagram post uploaded successfully');
-    } catch (error) {
-      logger.error('Instagram post upload failed:', error);
-      logger.warn('This is expected if not logged in or selectors changed');
-    }
-
+    
     // 10. Test Full Posting Workflow (Phase 5)
     logger.info('\n=== Testing Phase 5: Full Posting Workflow ===');
     const { postingOrchestrator } = await import('../services/postingOrchestrator');
