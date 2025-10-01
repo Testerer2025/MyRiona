@@ -4,6 +4,7 @@ import { imageGenerationService } from './imageGenerationService';
 import { instagramPostService } from './instagramPostService';
 import Post from '../models/Post';
 import logger from '../config/logger';
+import { Types } from 'mongoose';
 
 class PostingOrchestrator {
   /**
@@ -82,7 +83,7 @@ class PostingOrchestrator {
 
       return {
         success: true,
-        postId: postDoc._id.toString()
+        postId: postDoc._id instanceof Types.ObjectId ? postDoc._id.toString() : String(postDoc._id)
       };
 
     } catch (error: any) {
@@ -154,7 +155,7 @@ class PostingOrchestrator {
 
           return {
             success: true,
-            postId: postDoc._id.toString()
+            postId: postDoc._id instanceof Types.ObjectId ? postDoc._id.toString() : String(postDoc._id)
           };
         }
       } catch (backupError: any) {

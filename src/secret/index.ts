@@ -69,6 +69,16 @@ export const geminiApiKeys = [
   process.env.GEMINI_API_KEY_50 || "API_KEY_50",
 ];
 
+export const geminiApiKeys = [
+  process.env.GEMINI_API_KEY_1 || "API_KEY_1",
+  process.env.GEMINI_API_KEY_2 || "API_KEY_2",
+  // ... alle anderen
+].filter(key => 
+  key && 
+  !key.startsWith('API_KEY_') && 
+  !key.startsWith('default_')
+);
+
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
 const JWT_EXPIRES_IN = '2h';
 
@@ -97,14 +107,8 @@ export function getTokenFromRequest(req: Request): string | null {
   return null;
 }
 
-const validKeys = geminiApiKeys.filter(key => 
-  key && 
-  !key.startsWith('API_KEY_') && 
-  !key.startsWith('default_')
-);
-
-if (validKeys.length === 0) {
-  throw new Error('No valid Gemini API keys found');
+if (geminiApiKeys.length === 0) {
+  console.warn('⚠️ No valid Gemini API keys found in environment');
 }
 
 export { validKeys as geminiApiKeys };
