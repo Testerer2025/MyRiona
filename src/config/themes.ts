@@ -2,13 +2,23 @@ import fs from 'fs/promises';
 import path from 'path';
 import logger from './logger';
 
+// ============ INTERFACES ============
+
 export interface ImageConfig {
-  prompt: string;
-  apiStyle: string;
-  details: string;
-  size: string;
-  quality: string;
+  // Standard properties (für normale Themes)
+  prompt?: string;
+  apiStyle?: string;
+  details?: string;
+  size?: string;
+  quality?: string;
   usePostingText?: boolean;
+  referenceImage?: string | string[];
+  
+  // Weather-specific properties
+  prompt_good_weather?: string;
+  prompt_bad_weather?: string;
+  referenceImage_good_weather?: string[];
+  referenceImage_bad_weather?: string[];
 }
 
 export interface Theme {
@@ -16,7 +26,14 @@ export interface Theme {
   name: string;
   enabled: boolean;
   weight: number;
-  promptFile: string;
+  
+  // Standard prompt file (für normale Themes)
+  promptFile?: string;
+  
+  // Weather-specific prompt files
+  promptFile_good_weather?: string;
+  promptFile_bad_weather?: string;
+  
   image: ImageConfig;
 }
 
@@ -33,55 +50,14 @@ export interface ThemeConfig {
   backupPosts: string[];
 }
 
+// ============ WEATHER HELPER FUNCTIONS ============
 
-/* Weather Post */
-
-// Erweitere die bestehenden Theme Interfaces um Weather-Post Support
-
-export interface Theme {
-  id: string;
-  name: string;
-  enabled: boolean;
-  weight: number;
-  
-  // Standard prompt file (für normale Themes)
-  promptFile?: string;
-  
-  // Weather-specific prompt files
-  promptFile_good_weather?: string;
-  promptFile_bad_weather?: string;
-  
-  image: {
-    // Standard prompt (für normale Themes)
-    prompt?: string;
-    
-    // Weather-specific prompts
-    prompt_good_weather?: string;
-    prompt_bad_weather?: string;
-    
-    apiStyle?: string;
-    details?: string;
-    size?: string;
-    quality?: string;
-    usePostingText?: boolean;
-    
-    // Standard reference image(s)
-    referenceImage?: string | string[];
-    
-    // Weather-specific reference images
-    referenceImage_good_weather?: string[];
-    referenceImage_bad_weather?: string[];
-  };
-}
-
-// Helper function to check if theme is weather-based
 export function isWeatherTheme(theme: Theme): boolean {
   return theme.id === 'weather_post' && 
          !!theme.promptFile_good_weather && 
          !!theme.promptFile_bad_weather;
 }
 
-// Helper function to get prompt file based on weather condition
 export function getWeatherPromptFile(theme: Theme, condition: 'good' | 'bad'): string {
   if (!isWeatherTheme(theme)) {
     throw new Error('Theme is not a weather theme');
@@ -92,7 +68,6 @@ export function getWeatherPromptFile(theme: Theme, condition: 'good' | 'bad'): s
     : theme.promptFile_bad_weather!;
 }
 
-// Helper function to get image prompt based on weather condition
 export function getWeatherImagePrompt(theme: Theme, condition: 'good' | 'bad'): string {
   if (!isWeatherTheme(theme)) {
     throw new Error('Theme is not a weather theme');
@@ -103,7 +78,6 @@ export function getWeatherImagePrompt(theme: Theme, condition: 'good' | 'bad'): 
     : theme.image.prompt_bad_weather!;
 }
 
-// Helper function to get reference images based on weather condition
 export function getWeatherReferenceImages(theme: Theme, condition: 'good' | 'bad'): string[] {
   if (!isWeatherTheme(theme)) {
     throw new Error('Theme is not a weather theme');
@@ -114,7 +88,7 @@ export function getWeatherReferenceImages(theme: Theme, condition: 'good' | 'bad
     : theme.image.referenceImage_bad_weather || [];
 }
 
-/* End Weather Post */
+// ============ THEME MANAGER CLASS ============
 
 class ThemeManager {
   private config: ThemeConfig | null = null;
@@ -211,14 +185,40 @@ class ThemeManager {
         return false;
       }
 
-      // Check if prompt files exist
+      // Check if prompt files exist (including weather-specific prompts)
       for (const theme of enabledThemes) {
-        const promptPath = path.join(this.promptsDir, theme.promptFile);
-        try {
-          await fs.access(promptPath);
-        } catch {
-          logger.error(`Prompt file not found: ${theme.promptFile} for theme ${theme.id}`);
-          return false;
+        // Check normal theme prompt file
+        if (theme.promptFile) {
+          const promptPath = path.join(this.promptsDir, theme.promptFile);
+          try {
+            await fs.access(promptPath);
+          } catch {
+            logger.error(`Prompt file not found: ${theme.promptFile} for theme ${theme.id}`);
+            return false;
+          }
+        }
+
+        // Check weather-specific prompt files
+        if (theme.id === 'weather_post') {
+          if (theme.promptFile_good_weather) {
+            const goodWeatherPath = path.join(this.promptsDir, theme.promptFile_good_weather);
+            try {
+              await fs.access(goodWeatherPath);
+            } catch {
+              logger.error(`Weather prompt file not found: ${theme.promptFile_good_weather}`);
+              return false;
+            }
+          }
+
+          if (theme.promptFile_bad_weather) {
+            const badWeatherPath = path.join(this.promptsDir, theme.promptFile_bad_weather);
+            try {
+              await fs.access(badWeatherPath);
+            } catch {
+              logger.error(`Weather prompt file not found: ${theme.promptFile_bad_weather}`);
+              return false;
+            }
+          }
         }
       }
 

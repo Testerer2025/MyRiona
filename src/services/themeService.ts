@@ -47,8 +47,13 @@ class ThemeService {
 
   /**
    * Get theme with its prompt text loaded
+   * @param themeId - The theme ID
+   * @param customPromptFile - Optional custom prompt file (for weather-specific prompts)
    */
-  async getThemeWithPrompt(themeId: string): Promise<{ theme: Theme; promptText: string }> {
+  async getThemeWithPrompt(
+    themeId: string, 
+    customPromptFile?: string
+  ): Promise<{ theme: Theme; promptText: string }> {
     const theme = await themeManager.getThemeById(themeId);
     
     if (!theme) {
@@ -59,7 +64,14 @@ class ThemeService {
       throw new Error(`Theme is disabled: ${themeId}`);
     }
 
-    const promptText = await themeManager.loadPrompt(theme.promptFile);
+    // Use custom prompt file if provided (for weather posts), otherwise use theme's default
+    const promptFile = customPromptFile || theme.promptFile;
+
+    if (!promptFile) {
+      throw new Error(`No prompt file available for theme: ${themeId}`);
+    }
+
+    const promptText = await themeManager.loadPrompt(promptFile);
 
     return {
       theme,
