@@ -9,7 +9,7 @@
       "image": {
         "prompt": "Füge Menschen, die in der Bar am trinken sind, in das Bild ein. Gemütliche Atmosphäre, Dresscode: Casual.",
         "apiStyle": "natural",
-        "details": "Fotorealistische Darstellung, warme Beleuchtung.",
+        "details": "Fotorealistische Darstellung, warme Beleuchtung. Du darfst bei Bedarf die Perspektive oder den Bildausschnitt verändern.",
         "size": "1024x1024",
         "quality": "standard",
         "usePostingText": false,
@@ -23,9 +23,9 @@
       "weight": 1,
       "promptFile": "bar_showcase_people.txt",
       "image": {
-        "prompt": "Füge Menschen, die in der Bar am dartspielen sind und teilweise Gläser mit Bier und Cocktails in den Händen halten, in das Bild ein. Gemütliche Atmosphäre, Dresscode: Casual.",
+        "prompt": "Füge Menschen, die in der Bar am dartspielen sind und teilweise Gläser mit Bier und Cocktails in den Händen halten, in das Bild ein.  Personen dürfen beim Dartspielen auch von hinten gezeigt werden. Gemütliche Atmosphäre, Dresscode: Casual.",
         "apiStyle": "natural",
-        "details": "Fotorealistische Darstellung, warme Beleuchtung.",
+        "details": "Fotorealistische Darstellung, warme Beleuchtung.  Du darfst bei Bedarf die Perspektive oder den Bildausschnitt verändern.",
         "size": "1024x1024",
         "quality": "standard",
         "usePostingText": false,
