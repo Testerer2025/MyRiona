@@ -40,12 +40,22 @@ class PostingOrchestrator {
       logger.info(`Generated post text (${postText.length} chars)`);
       logger.debug(`Post text: ${postText.substring(0, 100)}...`);
 
-      // 5. Generate image with Gemini Image (with optional reference image)
+      // 5. Generate image with Gemini Image (with optional reference image and retry logic)
       logger.info('Generating image with Gemini Flash...');
       const imagePrompt = this.buildImagePrompt(selectedTheme, postText);
       const referenceImage = this.getReferenceImage(selectedTheme);
       
-      const imageBuffer = await imageGenerationService.generateImage(imagePrompt, referenceImage);
+      // Pass theme context for error logging
+      const themeContext = {
+        themeId: selectedTheme.id,
+        themeName: selectedTheme.name
+      };
+      
+      const imageBuffer = await imageGenerationService.generateImage(
+        imagePrompt, 
+        referenceImage,
+        themeContext
+      );
       
       // Save image temporarily
       const timestamp = Date.now();

@@ -11,6 +11,7 @@ import { getShouldExitInteractions } from '../../api/agent';
 import * as fsSync from "fs";
 import * as fsAsync from "fs/promises";
 import path from "path";
+import ErrorLog from "../../models/ErrorLog";
 
 puppeteerExtra.use(StealthPlugin());
 puppeteerExtra.use(
@@ -258,21 +259,24 @@ export class IgClient {
             logger.info("Cookies saved successfully");
             await this.handleNotificationPopup();
             
-        } catch (error) {
-            logger.error("❌ Login failed:", error);
-            
-            try {
-                await this.debugScreenshot('99-error-state');
-                const url = this.page!.url();
-                const title = await this.page!.title();
-                logger.info(`Error URL: ${url}`);
-                logger.info(`Error Page title: ${title}`);
-            } catch (e) {
-                logger.warn("Could not capture error state");
+            } catch (error) {
+                logger.error("Login failed:", error);
+                
+                // Log error to database
+                await this.logLoginError(error, { username: this.username });
+                
+                try {
+                    await this.debugScreenshot('99-error-state');
+                    const url = this.page!.url();
+                    const title = await this.page!.title();
+                    logger.info(`Error URL: ${url}`);
+                    logger.info(`Error Page title: ${title}`);
+                } catch (e) {
+                    logger.warn("Could not capture error state");
+                }
+                
+                throw new Error("Authentication failed");
             }
-            
-            throw new Error("Authentication failed");
-        }
     }
     async handleNotificationPopup() {
         if (!this.page) throw new Error("Page not initialized");
@@ -588,6 +592,27 @@ export class IgClient {
             await this.browser.close();
             this.browser = null;
             this.page = null;
+        }
+    }
+
+    /**
+     * Log login error to database
+     */
+    private async logLoginError(error: any, context: { username: string }): Promise<void> {
+        try {
+            await ErrorLog.create({
+                errorType: 'instagram_login',
+                errorMessage: error.message || 'Unknown login error',
+                errorStack: error.stack,
+                context: {
+                    username: context.username.substring(0, 3) + '***' // Masked username
+                },
+                timestamp: new Date(),
+                resolved: false
+            });
+            logger.info('Login error logged to database');
+        } catch (dbError) {
+            logger.error('Failed to log login error to database:', dbError);
         }
     }
 }

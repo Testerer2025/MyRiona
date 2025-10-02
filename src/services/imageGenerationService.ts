@@ -3,10 +3,17 @@ import { geminiApiKeys } from "../secret";
 import logger from "../config/logger";
 import fs from "fs/promises";
 import path from "path";
+import ErrorLog from "../models/ErrorLog";
 
 class ImageGenerationService {
   private currentApiKeyIndex = 0;
-  private referenceImagesDir = path.join(__dirname, '../config/reference-images');
+  // Path works for both dev (ts-node) and production (compiled js)
+  private referenceImagesDir = (() => {
+    const buildPath = path.join(__dirname, '../config/reference-images');
+    return buildPath;
+  })();
+
+  private readonly MAX_RETRIES = 3; // Total attempts: 3
 
   private getApiKey(): string {
     const key = geminiApiKeys[this.currentApiKeyIndex];
@@ -19,6 +26,33 @@ class ImageGenerationService {
   private rotateApiKey(): void {
     this.currentApiKeyIndex = (this.currentApiKeyIndex + 1) % geminiApiKeys.length;
     logger.info(`Rotated to API key ${this.currentApiKeyIndex + 1}`);
+  }
+
+  /**
+   * Log error to database
+   */
+  private async logError(
+    errorMessage: string,
+    errorStack: string | undefined,
+    context: any,
+    attemptNumber: number
+  ): Promise<void> {
+    try {
+      await ErrorLog.create({
+        errorType: 'image_generation',
+        errorMessage,
+        errorStack,
+        context: {
+          ...context,
+          attemptNumber
+        },
+        timestamp: new Date(),
+        resolved: false
+      });
+      logger.info('Error logged to database');
+    } catch (dbError) {
+      logger.error('Failed to log error to database:', dbError);
+    }
   }
 
   /**
@@ -79,101 +113,121 @@ class ImageGenerationService {
   }
 
   /**
-   * Generate image with optional reference image
+   * Generate image with retry logic (3 attempts)
    */
   async generateImage(
     prompt: string, 
-    referenceImage?: string | string[]
+    referenceImage?: string | string[],
+    themeContext?: { themeId: string; themeName: string }
   ): Promise<Buffer> {
-    try {
-      const googleAI = new GoogleGenerativeAI(this.getApiKey());
-      const model = googleAI.getGenerativeModel({ 
-        model: "gemini-2.5-flash-image-preview" 
-      });
+    let lastError: Error | null = null;
 
-      // Select reference image (if multiple provided)
-      const selectedRef = this.selectReferenceImage(referenceImage);
-      
-      let parts: any[] = [];
-
-      // Add reference image if provided
-      if (selectedRef) {
-        const refImageData = await this.loadReferenceImage(selectedRef);
+    for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
+      try {
+        logger.info(`Image generation attempt ${attempt}/${this.MAX_RETRIES}`);
         
-        if (refImageData) {
-          logger.info(`Using reference image: ${selectedRef}`);
-          
-          // Add reference image to parts
-          parts.push({
-            inlineData: {
-              data: refImageData.data,
-              mimeType: refImageData.mimeType
-            }
-          });
-          
-          // Enhanced prompt with reference instruction
-          parts.push({
-            text: `Using the provided reference image as style and composition guide, create a new image with the following description:\n\n${prompt}\n\nIMPORTANT: Use the reference image's style, lighting, and atmosphere, but create a NEW scene matching the description above. Do not copy the reference image exactly.`
-          });
-        } else {
-          logger.warn(`Reference image not found, generating without reference: ${selectedRef}`);
-          parts.push({ text: prompt });
+        const imageBuffer = await this.generateImageAttempt(prompt, referenceImage);
+        
+        if (attempt > 1) {
+          logger.info(`✅ Image generation succeeded on attempt ${attempt}`);
         }
-      } else {
-        // No reference image - standard generation
-        parts.push({ text: prompt });
-      }
+        
+        return imageBuffer;
 
-      logger.info(`Generating image: ${prompt.substring(0, 100)}...`);
+      } catch (error: any) {
+        lastError = error;
+        logger.error(`Image generation attempt ${attempt}/${this.MAX_RETRIES} failed:`, error.message);
 
-      const result = await model.generateContent(parts);
-      const response = result.response;
-      
-      // Check for image in response
-      if (response.candidates && response.candidates[0]?.content?.parts) {
-        for (const part of response.candidates[0].content.parts) {
-          if (part.inlineData?.data) {
-            const imageBuffer = Buffer.from(part.inlineData.data, 'base64');
-            logger.info(`Image generated: ${imageBuffer.length} bytes`);
-            return imageBuffer;
-          }
+        // Log error to database
+        const selectedRef = this.selectReferenceImage(referenceImage);
+        await this.logError(
+          error.message || 'Unknown error',
+          error.stack,
+          {
+            prompt: prompt.substring(0, 200),
+            referenceImage: selectedRef,
+            themeId: themeContext?.themeId,
+            themeName: themeContext?.themeName
+          },
+          attempt
+        );
+
+        // If this was the last attempt, throw error
+        if (attempt === this.MAX_RETRIES) {
+          logger.error(`❌ Image generation failed after ${this.MAX_RETRIES} attempts`);
+          throw new Error(`Image generation failed after ${this.MAX_RETRIES} attempts: ${error.message}`);
+        }
+
+        // Wait before retry (exponential backoff)
+        const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+        logger.info(`Waiting ${waitTime}ms before retry...`);
+        await this.delay(waitTime);
+
+        // Try rotating API key if rate limited
+        if (error.message?.includes('429')) {
+          this.rotateApiKey();
         }
       }
-
-      throw new Error('No image data in response');
-      
-    } catch (error: any) {
-      logger.error('Image generation failed:', error);
-      
-      // If model not found, try alternative
-      if (error.message?.includes('not found') || error.message?.includes('does not exist')) {
-        logger.warn('Model gemini-2.5-flash-image-preview not available, trying gemini-exp-1206');
-        return this.generateImageFallback(prompt);
-      }
-      
-      if (error.message?.includes('429')) {
-        this.rotateApiKey();
-        return this.generateImage(prompt, referenceImage);
-      }
-      
-      throw error;
     }
+
+    // This should never be reached, but TypeScript needs it
+    throw lastError || new Error('Image generation failed');
   }
 
   /**
-   * Fallback image generation (without reference image support)
+   * Single image generation attempt
    */
-  private async generateImageFallback(prompt: string): Promise<Buffer> {
+  private async generateImageAttempt(
+    prompt: string,
+    referenceImage?: string | string[]
+  ): Promise<Buffer> {
     const googleAI = new GoogleGenerativeAI(this.getApiKey());
-    const model = googleAI.getGenerativeModel({ model: "gemini-exp-1206" });
+    const model = googleAI.getGenerativeModel({ 
+      model: "gemini-2.5-flash-image-preview" 
+    });
 
-    const result = await model.generateContent(prompt);
+    // Select reference image (if multiple provided)
+    const selectedRef = this.selectReferenceImage(referenceImage);
+    
+    let parts: any[] = [];
+
+    // Add reference image if provided
+    if (selectedRef) {
+      const refImageData = await this.loadReferenceImage(selectedRef);
+      
+      if (refImageData) {
+        logger.info(`Using reference image: ${selectedRef}`);
+        
+        parts.push({
+          inlineData: {
+            data: refImageData.data,
+            mimeType: refImageData.mimeType
+          }
+        });
+        
+        parts.push({
+          text: `Using the provided reference image as style and composition guide, create a new image with the following description:\n\n${prompt}\n\nIMPORTANT: Use the reference image's style, lighting, and atmosphere, but create a NEW scene matching the description above. Do not copy the reference image exactly.`
+        });
+      } else {
+        logger.warn(`Reference image not found, generating without reference: ${selectedRef}`);
+        parts.push({ text: prompt });
+      }
+    } else {
+      parts.push({ text: prompt });
+    }
+
+    logger.info(`Generating image: ${prompt.substring(0, 100)}...`);
+
+    const result = await model.generateContent(parts);
     const response = result.response;
     
+    // Check for image in response
     if (response.candidates && response.candidates[0]?.content?.parts) {
       for (const part of response.candidates[0].content.parts) {
         if (part.inlineData?.data) {
-          return Buffer.from(part.inlineData.data, 'base64');
+          const imageBuffer = Buffer.from(part.inlineData.data, 'base64');
+          logger.info(`Image generated: ${imageBuffer.length} bytes`);
+          return imageBuffer;
         }
       }
     }
@@ -203,6 +257,13 @@ class ImageGenerationService {
       logger.warn(`Reference images directory not found: ${this.referenceImagesDir}`);
       logger.warn('Reference images feature will not work until directory is created');
     }
+  }
+
+  /**
+   * Delay utility
+   */
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 }
 

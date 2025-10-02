@@ -6,6 +6,7 @@ import { signToken, verifyToken, getTokenFromRequest } from '../secret';
 import fs from 'fs/promises';
 import path from 'path';
 import { postingOrchestrator } from '../services/postingOrchestrator';
+import ErrorLog from '../models/ErrorLog';
 
 const router = express.Router();
 
@@ -113,6 +114,84 @@ router.get('/instagram/stats', async (req: Request, res: Response) => {
   } catch (error: any) {
     logger.error('Stats endpoint error:', error);
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Error Logs Endpoints - füge nach dem /instagram/stats endpoint ein:
+
+router.get('/errors', async (req: Request, res: Response) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 50;
+    const errorType = req.query.type as string;
+
+    const query = errorType ? { errorType } : {};
+
+    const errors = await ErrorLog.find(query)
+      .sort({ timestamp: -1 })
+      .limit(limit);
+
+    const stats = {
+      total: await ErrorLog.countDocuments(),
+      byType: {
+        image_generation: await ErrorLog.countDocuments({ errorType: 'image_generation' }),
+        instagram_login: await ErrorLog.countDocuments({ errorType: 'instagram_login' }),
+        instagram_posting: await ErrorLog.countDocuments({ errorType: 'instagram_posting' }),
+        post_generation: await ErrorLog.countDocuments({ errorType: 'post_generation' }),
+        other: await ErrorLog.countDocuments({ errorType: 'other' })
+      },
+      unresolved: await ErrorLog.countDocuments({ resolved: false })
+    };
+
+    res.json({
+      stats,
+      errors
+    });
+  } catch (error: any) {
+    logger.error('Error logs endpoint error:', error);
+    res.status(500).json({ error: 'Failed to fetch error logs' });
+  }
+});
+
+router.get('/errors/stats', async (req: Request, res: Response) => {
+  try {
+    const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const last7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    const stats = {
+      total: await ErrorLog.countDocuments(),
+      unresolved: await ErrorLog.countDocuments({ resolved: false }),
+      last24h: await ErrorLog.countDocuments({ timestamp: { $gte: last24h } }),
+      last7d: await ErrorLog.countDocuments({ timestamp: { $gte: last7d } }),
+      byType: {
+        image_generation: await ErrorLog.countDocuments({ errorType: 'image_generation' }),
+        instagram_login: await ErrorLog.countDocuments({ errorType: 'instagram_login' }),
+        instagram_posting: await ErrorLog.countDocuments({ errorType: 'instagram_posting' })
+      }
+    };
+
+    res.json(stats);
+  } catch (error: any) {
+    logger.error('Error stats endpoint error:', error);
+    res.status(500).json({ error: 'Failed to fetch error statistics' });
+  }
+});
+
+router.patch('/errors/:id/resolve', async (req: Request, res: Response) => {
+  try {
+    const error = await ErrorLog.findByIdAndUpdate(
+      req.params.id,
+      { resolved: true },
+      { new: true }
+    );
+
+    if (!error) {
+      return res.status(404).json({ error: 'Error log not found' });
+    }
+
+    res.json(error);
+  } catch (error: any) {
+    logger.error('Error resolve endpoint error:', error);
+    res.status(500).json({ error: 'Failed to resolve error' });
   }
 });
 
