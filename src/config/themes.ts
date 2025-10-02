@@ -27,10 +27,10 @@ export interface Theme {
   enabled: boolean;
   weight: number;
   
-  // Standard prompt file (für normale Themes)
-  promptFile?: string;
+  // Standard prompt file (für normale Themes - REQUIRED)
+  promptFile: string;
   
-  // Weather-specific prompt files
+  // Weather-specific prompt files (optional, nur für weather_post)
   promptFile_good_weather?: string;
   promptFile_bad_weather?: string;
   
@@ -187,18 +187,7 @@ class ThemeManager {
 
       // Check if prompt files exist (including weather-specific prompts)
       for (const theme of enabledThemes) {
-        // Check normal theme prompt file
-        if (theme.promptFile) {
-          const promptPath = path.join(this.promptsDir, theme.promptFile);
-          try {
-            await fs.access(promptPath);
-          } catch {
-            logger.error(`Prompt file not found: ${theme.promptFile} for theme ${theme.id}`);
-            return false;
-          }
-        }
-
-        // Check weather-specific prompt files
+        // For weather_post, check weather-specific prompts instead
         if (theme.id === 'weather_post') {
           if (theme.promptFile_good_weather) {
             const goodWeatherPath = path.join(this.promptsDir, theme.promptFile_good_weather);
@@ -218,6 +207,15 @@ class ThemeManager {
               logger.error(`Weather prompt file not found: ${theme.promptFile_bad_weather}`);
               return false;
             }
+          }
+        } else {
+          // For normal themes, check standard promptFile
+          const promptPath = path.join(this.promptsDir, theme.promptFile);
+          try {
+            await fs.access(promptPath);
+          } catch {
+            logger.error(`Prompt file not found: ${theme.promptFile} for theme ${theme.id}`);
+            return false;
           }
         }
       }
