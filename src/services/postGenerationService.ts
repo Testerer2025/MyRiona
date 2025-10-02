@@ -27,17 +27,25 @@ class PostGenerationService {
   }
 
   /**
-   * Get last N posts from database
+   * Get last N posts from database - optionally filtered by theme
    */
-  async getLastPosts(limit: number = 25): Promise<string[]> {
+  async getLastPosts(limit: number = 5, themeId?: string): Promise<string[]> {
     try {
-      const posts = await Post.find({ status: 'success' })
+      const query: any = { status: 'success' };
+      
+      // Theme-specific filtering
+      if (themeId) {
+        query.themeId = themeId;
+        logger.info(`Filtering posts by themeId: ${themeId}`);
+      }
+      
+      const posts = await Post.find(query)
         .sort({ postedAt: -1 })
         .limit(limit)
         .select('postText');
       
       const postTexts = posts.map(p => p.postText);
-      logger.info(`Retrieved ${postTexts.length} previous posts for similarity check`);
+      logger.info(`Retrieved ${postTexts.length} previous posts${themeId ? ` for theme ${themeId}` : ''} for similarity check`);
       return postTexts;
     } catch (error) {
       logger.error('Error fetching last posts:', error);
@@ -46,34 +54,46 @@ class PostGenerationService {
   }
 
   /**
-   * Perform similarity check with Gemini
+   * Perform similarity check with Gemini - structured analysis
    */
-  async checkSimilarity(lastPosts: string[]): Promise<{
-    avoidKeywords: string[];
-    avoidThemes: string[];
+  async checkSimilarity(lastPosts: string[], themeName: string): Promise<{
+    avoidPhrases: string[];
+    avoidEmojiPatterns: string[];
+    avoidStructures: string[];
     recommendation: string;
   }> {
     if (lastPosts.length === 0) {
       return {
-        avoidKeywords: [],
-        avoidThemes: [],
-        recommendation: "No previous posts found. Feel free to be creative."
+        avoidPhrases: [],
+        avoidEmojiPatterns: [],
+        avoidStructures: [],
+        recommendation: "Keine vorherigen Posts gefunden. Sei kreativ!"
       };
     }
 
-    const prompt = `Analysiere diese ${lastPosts.length} Instagram-Posts und identifiziere:
-1. Häufig verwendete Keywords, die vermieden werden sollten
-2. Wiederkehrende Themen, die vermieden werden sollten
-3. Eine Empfehlung für einen neuen, frischen Ansatz
+    const prompt = `Du bist ein Instagram-Content-Analyst. Analysiere diese ${lastPosts.length} Posts für die PAPA Bar (Theme: ${themeName}).
 
-Posts:
+Posts (neueste zuerst):
 ${lastPosts.map((post, i) => `${i + 1}. ${post}`).join('\n\n')}
+
+Identifiziere Muster die VERMIEDEN werden sollten:
+1. **Formulierungen** die zu oft verwendet werden (z.B. "Komm vorbei!", "Wer ist dabei?", "Lass den Tag ausklingen")
+2. **Emoji-Kombinationen** die sich wiederholen (z.B. immer "🍺🎯" oder "☀️🍹")
+3. **Post-Strukturen** die langweilig werden (z.B. immer "Frage → Info → CTA" oder immer gleicher Aufbau)
+
+Gib dann eine konkrete, umsetzbare Empfehlung für Abwechslung im nächsten Post.
+
+WICHTIG: 
+- Sei spezifisch, nicht generisch
+- Wenn Muster nicht deutlich sind, gib leere Arrays zurück
+- Fokus auf wirklich auffällige Wiederholungen
 
 Antworte NUR mit einem gültigen JSON-Objekt in diesem Format:
 {
-  "avoidKeywords": ["keyword1", "keyword2"],
-  "avoidThemes": ["theme1", "theme2"],
-  "recommendation": "deine empfehlung"
+  "avoidPhrases": ["phrase1", "phrase2"],
+  "avoidEmojiPatterns": ["🍺🎯", "☀️🍹"],
+  "avoidStructures": ["Immer mit Frage beginnen", "Immer gleiche CTA"],
+  "recommendation": "Konkrete Empfehlung für den nächsten Post"
 }`;
 
     try {
@@ -90,18 +110,21 @@ Antworte NUR mit einem gültigen JSON-Objekt in diesem Format:
       const jsonStr = jsonMatch ? jsonMatch[0] : responseText;
       const data = JSON.parse(jsonStr);
 
-      logger.info(`Similarity check completed. Avoid keywords: ${data.avoidKeywords.join(', ')}`);
+      logger.info(`Similarity check completed. Avoid phrases: ${data.avoidPhrases.length}, emoji patterns: ${data.avoidEmojiPatterns.length}`);
+      logger.debug(`Recommendation: ${data.recommendation}`);
+      
       return data;
     } catch (error: any) {
       if (error.message?.includes('429')) {
         this.rotateApiKey();
-        return this.checkSimilarity(lastPosts); // Retry with new key
+        return this.checkSimilarity(lastPosts, themeName); // Retry with new key
       }
       logger.error('Similarity check failed:', error);
       return {
-        avoidKeywords: [],
-        avoidThemes: [],
-        recommendation: "Error during analysis. Proceed with caution."
+        avoidPhrases: [],
+        avoidEmojiPatterns: [],
+        avoidStructures: [],
+        recommendation: "Fehler bei der Analyse. Sei vorsichtig mit Wiederholungen."
       };
     }
   }
@@ -112,7 +135,12 @@ Antworte NUR mit einem gültigen JSON-Objekt in diesem Format:
   async generatePostText(
     theme: Theme,
     promptText: string,
-    similarityCheck: { avoidKeywords: string[]; avoidThemes: string[]; recommendation: string }
+    similarityCheck: { 
+      avoidPhrases: string[]; 
+      avoidEmojiPatterns: string[]; 
+      avoidStructures: string[];
+      recommendation: string;
+    }
   ): Promise<{ postText: string; hashtags: string[]; tone: string }> {
     const defaults = await themeManager.getDefaults();
 
@@ -125,8 +153,11 @@ WICHTIGE EINSCHRÄNKUNGEN:
 - Maximal ${defaults.maxLength} Zeichen
 - Sprache: ${defaults.language}
 - ${defaults.includeHashtags ? `Genau ${defaults.hashtagCount} relevante Hashtags (ohne # Symbol)` : 'Keine Hashtags'}
-- Vermeide diese Keywords: ${similarityCheck.avoidKeywords.join(', ')}
-- Vermeide diese Themen: ${similarityCheck.avoidThemes.join(', ')}
+
+VERMEIDUNGS-REGELN (aus Analyse vorheriger Posts):
+${similarityCheck.avoidPhrases.length > 0 ? `- Vermeide diese Formulierungen: ${similarityCheck.avoidPhrases.join(', ')}` : ''}
+${similarityCheck.avoidEmojiPatterns.length > 0 ? `- Vermeide diese Emoji-Muster: ${similarityCheck.avoidEmojiPatterns.join(', ')}` : ''}
+${similarityCheck.avoidStructures.length > 0 ? `- Vermeide diese Strukturen: ${similarityCheck.avoidStructures.join(', ')}` : ''}
 - Empfehlung: ${similarityCheck.recommendation}
 
 STIL:
@@ -134,6 +165,7 @@ STIL:
 - Passend für eine lokale Bar in Dübi
 - Einladend und freundlich
 - Keine übertriebenen Emojis
+- Variiere die Post-Struktur
 
 Antworte NUR mit einem gültigen JSON-Objekt in diesem Format:
 {
@@ -177,13 +209,13 @@ Antworte NUR mit einem gültigen JSON-Objekt in diesem Format:
     tone: string;
     similarityCheck: string;
   }> {
-    // 1. Get last posts
-    const lastPosts = await this.getLastPosts(25);
+    // 1. Get last 5 posts from SAME theme
+    const lastPosts = await this.getLastPosts(5, theme.id);
 
-    // 2. Check similarity
-    const similarityResult = await this.checkSimilarity(lastPosts);
+    // 2. Check similarity with structured analysis
+    const similarityResult = await this.checkSimilarity(lastPosts, theme.name);
 
-    // 3. Generate post
+    // 3. Generate post with avoidance rules
     const postData = await this.generatePostText(theme, promptText, similarityResult);
 
     // 4. Format final post text with hashtags
