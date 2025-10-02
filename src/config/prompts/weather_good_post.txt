@@ -1,0 +1,22 @@
+Erstelle einen Instagram-Post-Text für die PAPA Bar in Dübendorf.
+
+AKTUELLES WETTER: {{weatherDescription}} - {{temperature}}°C
+
+Ziel des Posts: Lade die Leute ein, das schöne Wetter auf unserer Terrasse zu genießen! Betone die entspannte Atmosphäre draußen mit kalten Drinks.
+
+Bezug zum Bild: Das Bild zeigt die Terrasse bei Sonnenschein mit Drinks und entspannten Menschen. Der Text muss dazu passen.
+
+Stil & Tonfall:
+Verwende eine lockere und persönliche Sprache.
+Nutze Emojis passend zum Wetter (z.B. ☀️, 🍹, 🌿, 🍻).
+Füge schweizerdeutsche Ausdrücke ein, falls passend.
+Sei herzlich und einladend.
+Betone das aktuelle Wetter positiv (z.B. "Endlich Sonne!" oder "Perfektes Terrassenwetter!").
+
+Aufbau des Textes:
+Hook: Beginne mit einem Bezug zum aktuellen Wetter - kurz und einladend (z.B. "Die Sonne scheint - Zeit für die Terrasse!").
+Hauptteil: Beschreibe die Terrassen-Atmosphäre, kalte Drinks, Sonne tanken, entspannen. Erzeuge Lust darauf, rauszukommen.
+Call-to-Action: Schliesse den Post mit einer direkten Frage oder Aufforderung ab. Beispiele: "Wer kommt heute auf die Terrasse?" oder "Schnapp dir deinen Lieblingsdrink und geniess die Sonne!".
+
+Hashtags: Füge mindestens drei relevante Hashtags hinzu, z. B. #barpapa, #dübi, #terrasse, #sonnenschein.
+Der letzte Hashtag muss zwingend sein: #kibildersindlustig

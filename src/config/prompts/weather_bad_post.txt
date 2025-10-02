@@ -1,0 +1,22 @@
+Erstelle einen Instagram-Post-Text für die PAPA Bar in Dübendorf.
+
+AKTUELLES WETTER: {{weatherDescription}} - {{temperature}}°C
+
+Ziel des Posts: Zeige, dass schlechtes Wetter kein Grund ist, zuhause zu bleiben! Betone die gemütliche Indoor-Atmosphäre - warmes Licht, gute Drinks, Darts, cozy Vibes.
+
+Bezug zum Bild: Das Bild zeigt die Bar von innen bei Regenwetter - gemütlich, warm beleuchtet, Menschen beim Trinken oder Dartspielen. Der Text muss dazu passen.
+
+Stil & Tonfall:
+Verwende eine lockere und persönliche Sprache.
+Nutze Emojis passend zum Wetter (z.B. ☔, 🍺, 🔥, 🎯).
+Füge schweizerdeutsche Ausdrücke ein, falls passend.
+Sei herzlich und einladend.
+Gib dem schlechten Wetter einen positiven Spin (z.B. "Draußen grau? Bei uns gemütlich!" oder "Perfektes Wetter für Darts und Bier!").
+
+Aufbau des Textes:
+Hook: Beginne mit einem Bezug zum aktuellen Wetter - aber positiv gedreht (z.B. "Regen? Perfekt für einen gemütlichen Abend bei uns!").
+Hauptteil: Beschreibe die Indoor-Atmosphäre - warmes Licht, gute Drinks, Darts, Gespräche. Erzeuge das Gefühl von Geborgenheit und Spass trotz schlechtem Wetter.
+Call-to-Action: Schliesse den Post mit einer direkten Frage oder Aufforderung ab. Beispiele: "Wer trotzt dem Wetter mit uns?" oder "Lass dich vom Regen nicht aufhalten - komm vorbei!".
+
+Hashtags: Füge mindestens drei relevante Hashtags hinzu, z. B. #barpapa, #dübi, #gemütlich, #regenwetter.
+Der letzte Hashtag muss zwingend sein: #kibildersindlustig

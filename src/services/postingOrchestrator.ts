@@ -2,9 +2,11 @@ import { themeService } from './themeService';
 import { postGenerationService } from './postGenerationService';
 import { imageGenerationService } from './imageGenerationService';
 import { instagramPostService } from './instagramPostService';
+import { weatherService } from './weatherService'; 
 import Post from '../models/Post';
 import logger from '../config/logger';
 import { Types } from 'mongoose';
+
 
 class PostingOrchestrator {
   /**
@@ -14,6 +16,7 @@ class PostingOrchestrator {
     let selectedTheme;
     let postText;
     let imagePath;
+    let weatherData = undefined; // ← NEU
 
     try {
       logger.info('=== Starting new post creation ===');
@@ -28,9 +31,66 @@ class PostingOrchestrator {
       selectedTheme = await themeService.selectRandomTheme();
       logger.info(`Selected theme: ${selectedTheme.name} (${selectedTheme.id})`);
 
-      // 3. Load theme prompt
-      const { promptText } = await themeService.getThemeWithPrompt(selectedTheme.id);
-      logger.info(`Loaded prompt for theme: ${selectedTheme.name}`);
+      // ============ NEU: Weather Check ============
+      let promptText;
+      let imagePrompt;
+      let referenceImage;
+
+      // Check if theme is weather_post
+      if (selectedTheme.id === 'weather_post') {
+        logger.info('Weather theme detected - fetching current weather...');
+        
+        try {
+          weatherData = await weatherService.getCurrentWeather();
+          logger.info(`Weather condition: ${weatherData.condition} (${weatherData.description})`);
+
+          // Get weather-specific prompt file
+          const promptFileName = weatherData.condition === 'good' 
+            ? selectedTheme.promptFile_good_weather 
+            : selectedTheme.promptFile_bad_weather;
+
+          if (!promptFileName) {
+            throw new Error(`No weather prompt file defined for condition: ${weatherData.condition}`);
+          }
+
+          // Load prompt text and inject weather data
+          const themeWithPrompt = await themeService.getThemeWithPrompt(selectedTheme.id, promptFileName);
+          promptText = themeWithPrompt.promptText
+            .replace('{{weatherDescription}}', weatherData.description)
+            .replace('{{temperature}}', weatherData.temperature.toString());
+
+          logger.info(`Loaded weather-specific prompt: ${promptFileName}`);
+
+          // Get weather-specific image config
+          imagePrompt = weatherData.condition === 'good'
+            ? selectedTheme.image.prompt_good_weather
+            : selectedTheme.image.prompt_bad_weather;
+
+          const referenceImages = weatherData.condition === 'good'
+            ? selectedTheme.image.referenceImage_good_weather
+            : selectedTheme.image.referenceImage_bad_weather;
+
+          // Select random reference image if array
+          if (Array.isArray(referenceImages) && referenceImages.length > 0) {
+            referenceImage = referenceImages[Math.floor(Math.random() * referenceImages.length)];
+          } else {
+            referenceImage = referenceImages;
+          }
+
+          logger.info(`Using weather-specific image config for ${weatherData.condition} weather`);
+
+        } catch (weatherError: any) {
+          logger.error('Failed to fetch weather data:', weatherError);
+          throw new Error(`Weather fetch failed: ${weatherError.message}`);
+        }
+
+      } else {
+        // Normal theme (non-weather)
+        const themeWithPrompt = await themeService.getThemeWithPrompt(selectedTheme.id);
+        promptText = themeWithPrompt.promptText;
+        logger.info(`Loaded prompt for theme: ${selectedTheme.name}`);
+      }
+      // ============ END Weather Check ============
 
       // 4. Generate post text (with similarity check)
       logger.info('Generating post text with Gemini...');
@@ -42,8 +102,16 @@ class PostingOrchestrator {
 
       // 5. Generate image with Gemini Image (with optional reference image and retry logic)
       logger.info('Generating image with Gemini Flash...');
-      const imagePrompt = this.buildImagePrompt(selectedTheme, postText);
-      const referenceImage = this.getReferenceImage(selectedTheme);
+      
+      // Use weather-specific imagePrompt if available, otherwise build from theme
+      if (!imagePrompt) {
+        imagePrompt = this.buildImagePrompt(selectedTheme, postText);
+      }
+      
+      // Use weather-specific referenceImage if available, otherwise get from theme
+      if (!referenceImage) {
+        referenceImage = this.getReferenceImage(selectedTheme);
+      }
       
       // Pass theme context for error logging
       const themeContext = {
@@ -81,6 +149,7 @@ class PostingOrchestrator {
         imagePrompt: imagePrompt,
         imageUrl: imagePath,
         similarityCheck: postData.similarityCheck,
+        weatherData: weatherData ? JSON.stringify(weatherData) : undefined, // ← NEU
         postedAt: new Date(),
         status: 'success'
       });
@@ -108,6 +177,7 @@ class PostingOrchestrator {
           themeId: selectedTheme?.id || 'unknown',
           postText: postText || 'Generation failed',
           imagePrompt: 'Generation failed',
+          weatherData: weatherData ? JSON.stringify(weatherData) : undefined, // ← NEU
           postedAt: new Date(),
           status: 'failed',
           errorMessage: error.message || 'Unknown error'

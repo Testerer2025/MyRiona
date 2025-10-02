@@ -1,5 +1,9 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+// In src/models/Post.ts
+// Füge NUR diese zwei Änderungen hinzu:
+
+// 1. Im Interface IPost:
 export interface IPost extends Document {
   theme: string;
   themeId: string;
@@ -7,11 +11,13 @@ export interface IPost extends Document {
   imagePrompt: string;
   imageUrl?: string;
   similarityCheck?: string;
+  weatherData?: string; // ← NEU: Nur diese Zeile hinzufügen
   postedAt: Date;
   status: 'success' | 'failed';
   errorMessage?: string;
 }
 
+// 2. Im PostSchema - nach similarityCheck einfügen:
 const PostSchema: Schema = new Schema({
   theme: {
     type: String,
@@ -36,6 +42,10 @@ const PostSchema: Schema = new Schema({
     required: false
   },
   similarityCheck: {
+    type: String,
+    required: false
+  },
+  weatherData: {           // ← NEU: Nur diesen Block hinzufügen
     type: String,
     required: false
   },

@@ -33,6 +33,89 @@ export interface ThemeConfig {
   backupPosts: string[];
 }
 
+
+/* Weather Post */
+
+// Erweitere die bestehenden Theme Interfaces um Weather-Post Support
+
+export interface Theme {
+  id: string;
+  name: string;
+  enabled: boolean;
+  weight: number;
+  
+  // Standard prompt file (für normale Themes)
+  promptFile?: string;
+  
+  // Weather-specific prompt files
+  promptFile_good_weather?: string;
+  promptFile_bad_weather?: string;
+  
+  image: {
+    // Standard prompt (für normale Themes)
+    prompt?: string;
+    
+    // Weather-specific prompts
+    prompt_good_weather?: string;
+    prompt_bad_weather?: string;
+    
+    apiStyle?: string;
+    details?: string;
+    size?: string;
+    quality?: string;
+    usePostingText?: boolean;
+    
+    // Standard reference image(s)
+    referenceImage?: string | string[];
+    
+    // Weather-specific reference images
+    referenceImage_good_weather?: string[];
+    referenceImage_bad_weather?: string[];
+  };
+}
+
+// Helper function to check if theme is weather-based
+export function isWeatherTheme(theme: Theme): boolean {
+  return theme.id === 'weather_post' && 
+         !!theme.promptFile_good_weather && 
+         !!theme.promptFile_bad_weather;
+}
+
+// Helper function to get prompt file based on weather condition
+export function getWeatherPromptFile(theme: Theme, condition: 'good' | 'bad'): string {
+  if (!isWeatherTheme(theme)) {
+    throw new Error('Theme is not a weather theme');
+  }
+  
+  return condition === 'good' 
+    ? theme.promptFile_good_weather! 
+    : theme.promptFile_bad_weather!;
+}
+
+// Helper function to get image prompt based on weather condition
+export function getWeatherImagePrompt(theme: Theme, condition: 'good' | 'bad'): string {
+  if (!isWeatherTheme(theme)) {
+    throw new Error('Theme is not a weather theme');
+  }
+  
+  return condition === 'good'
+    ? theme.image.prompt_good_weather!
+    : theme.image.prompt_bad_weather!;
+}
+
+// Helper function to get reference images based on weather condition
+export function getWeatherReferenceImages(theme: Theme, condition: 'good' | 'bad'): string[] {
+  if (!isWeatherTheme(theme)) {
+    throw new Error('Theme is not a weather theme');
+  }
+  
+  return condition === 'good'
+    ? theme.image.referenceImage_good_weather || []
+    : theme.image.referenceImage_bad_weather || [];
+}
+
+/* End Weather Post */
+
 class ThemeManager {
   private config: ThemeConfig | null = null;
   private configPath: string;
