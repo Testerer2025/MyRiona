@@ -4,7 +4,7 @@
       "id": "bar_showcase",
       "name": "Bar Showcase",
       "enabled": true,
-      "weight": 0,
+      "weight": 1,
       "promptFile": "bar_showcase.txt",
       "image": {
         "prompt": "Füge Menschen, die in der Bar am trinken sind, in das Bild ein. Gemütliche Atmosphäre, Dresscode: Casual. Bitte ändere auch die Perspektive oder den Bildausschnitt.",
@@ -20,7 +20,7 @@
       "id": "bar_showcase_people",
       "name": "Bar Showcase mit Personen",
       "enabled": true,
-      "weight": 0,
+      "weight": 1,
       "promptFile": "bar_showcase_people.txt",
       "image": {
         "prompt": "Füge Menschen, die in der Bar am dartspielen sind und teilweise Gläser mit Bier und Cocktails in den Händen halten, in das Bild ein. Bitte ändere auch die Perspektive oder den Bildausschnitt. Personen dürfen beim Dartspielen auch von hinten gezeigt werden. Gemütliche Atmosphäre, Dresscode: Casual.",
@@ -30,21 +30,6 @@
         "quality": "standard",
         "usePostingText": false,
         "referenceImage": ["dart1.jpg", "dart2.jpg", "dart3.jpg"]
-      }
-    },
-    {
-      "id": "terrace_post",
-      "name": "Terrassen Post",
-      "enabled": true,
-      "weight": 0,
-      "promptFile": "terrace_post.txt",
-      "image": {
-        "prompt": "Personen entspannen auf einer schönen, sonnigen Bar-Terrasse mit Drinks. Auf dem von dir generierten Bild dürfen auf gar keinen Fall dürfen Schriften oder Text in irgendeiner Form sichtbar sein.",
-        "apiStyle": "natural",
-        "details": "Sonnenschein, Pflanzen, entspannte Atmosphäre, Drinks auf Tischen, lächelnde Menschen.",
-        "size": "1024x1024",
-        "quality": "standard",
-        "usePostingText": false 
       }
     },
     {
